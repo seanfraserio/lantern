@@ -1,8 +1,12 @@
 import type { FastifyInstance } from "fastify";
 
 export function registerDashboardRoutes(app: FastifyInstance, apiKey?: string): void {
-  app.get("/", async (_request, reply) => {
-    const html = DASHBOARD_HTML.replace('/*__API_KEY_INJECT__*/', apiKey ? `window.__LANTERN_API_KEY__ = ${JSON.stringify(apiKey)};` : '');
+  app.get("/", async (request, reply) => {
+    // Only inject the API key for requests from localhost to prevent credential leaks
+    const remoteAddr = request.ip;
+    const isLocal = remoteAddr === "127.0.0.1" || remoteAddr === "::1" || remoteAddr === "::ffff:127.0.0.1";
+    const injectKey = apiKey && isLocal;
+    const html = DASHBOARD_HTML.replace('/*__API_KEY_INJECT__*/', injectKey ? `window.__LANTERN_API_KEY__ = ${JSON.stringify(apiKey)};` : '');
     return reply.type("text/html").send(html);
   });
 }
