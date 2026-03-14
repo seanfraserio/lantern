@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lantern — Agent Observability for the Enterprise</title>
+<meta name="description" content="Full-stack visibility into AI agent behavior. Trace reasoning chains, track quality drift, attribute costs, and detect PII — at enterprise scale." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128294;</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #09090b;
+    --surface: #111114;
+    --surface2: #18181b;
+    --surface3: #1f1f23;
+    --border: #27272a;
+    --border-light: #3f3f46;
+    --text: #fafafa;
+    --text-dim: #a1a1aa;
+    --text-muted: #71717a;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-dim: rgba(99,102,241,0.1);
+    --accent-glow: rgba(99,102,241,0.15);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.1);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.1);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.1);
+    --cyan: #06b6d4;
+    --cyan-dim: rgba(6,182,212,0.1);
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
+
+  /* ── Nav ── */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(9,9,11,0.8); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+  .nav-inner { max-width: 1200px; margin: 0 auto; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+  .nav-logo { font-size: 20px; font-weight: 800; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 10px; letter-spacing: -0.5px; }
+  .nav-mark { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--cyan)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .nav-links { display: flex; gap: 32px; align-items: center; }
+  .nav-links a { color: var(--text-dim); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.15s; }
+  .nav-links a:hover { color: var(--text); }
+  .btn { padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; transition: all 0.2s; font-family: var(--sans); cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-light); box-shadow: 0 0 24px var(--accent-glow); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border-light); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent-light); }
+  .btn-ghost { background: transparent; color: var(--text-dim); }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-lg { padding: 14px 32px; font-size: 15px; border-radius: 10px; }
+  @media (max-width: 768px) { .nav-links { display: none; } }
+
+  /* ── Hero ── */
+  .hero { position: relative; max-width: 1200px; margin: 0 auto; padding: 160px 32px 100px; text-align: center; }
+  .hero-glow { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: 600px; height: 400px; background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+  .hero-content { position: relative; z-index: 1; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; font-size: 13px; color: var(--text-dim); margin-bottom: 28px; }
+  .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .hero h1 { font-size: clamp(36px, 6vw, 64px); font-weight: 800; letter-spacing: -2px; line-height: 1.1; margin-bottom: 24px; }
+  .hero h1 .gradient { background: linear-gradient(135deg, var(--accent-light), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero p { font-size: 19px; color: var(--text-dim); max-width: 640px; margin: 0 auto 40px; line-height: 1.7; }
+  .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  /* ── Trust strip ── */
+  .trust { max-width: 1200px; margin: 0 auto; padding: 60px 32px; text-align: center; }
+  .trust-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 28px; }
+  .trust-logos { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; align-items: center; opacity: 0.5; }
+  .trust-logo { font-size: 18px; font-weight: 700; color: var(--text-dim); letter-spacing: -0.5px; }
+
+  /* ── Section ── */
+  section { max-width: 1200px; margin: 0 auto; padding: 100px 32px; }
+  .section-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-light); margin-bottom: 14px; }
+  section h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; margin-bottom: 12px; letter-spacing: -1px; line-height: 1.2; }
+  section .subtitle { color: var(--text-dim); font-size: 17px; margin-bottom: 48px; max-width: 560px; line-height: 1.7; }
+  .section-centered { text-align: center; }
+  .section-centered .subtitle { margin-left: auto; margin-right: auto; }
+
+  /* ── Problem / Solution ── */
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 768px) { .problem-grid { grid-template-columns: 1fr; } }
+  .problem-card { padding: 32px; border-radius: 14px; border: 1px solid var(--border); }
+  .problem-card.before { background: var(--red-dim); border-color: rgba(239,68,68,0.2); }
+  .problem-card.after { background: var(--green-dim); border-color: rgba(34,197,94,0.2); }
+  .problem-card h3 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+  .problem-card.before h3 { color: var(--red); }
+  .problem-card.after h3 { color: var(--green); }
+  .problem-list { list-style: none; }
+  .problem-list li { padding: 10px 0; font-size: 15px; color: var(--text-dim); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; }
+  .problem-list li:last-child { border-bottom: none; }
+  .problem-list .icon { flex-shrink: 0; font-size: 16px; }
+
+  /* ── Features ── */
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px; transition: border-color 0.2s, box-shadow 0.2s; }
+  .feature-card:hover { border-color: var(--accent); box-shadow: 0 0 32px var(--accent-glow); }
+  .feature-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
+  .feature-icon.purple { background: var(--accent-dim); }
+  .feature-icon.green { background: var(--green-dim); }
+  .feature-icon.amber { background: var(--amber-dim); }
+  .feature-icon.cyan { background: var(--cyan-dim); }
+  .feature-icon.red { background: var(--red-dim); }
+  .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .feature-card p { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ── Dashboard preview ── */
+  .preview { max-width: 1200px; margin: 0 auto; padding: 0 32px 100px; }
+  .preview-frame { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.4); }
+  .preview-bar { height: 40px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 8px; }
+  .preview-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .preview-dot.r { background: #ff5f57; } .preview-dot.y { background: #febc2e; } .preview-dot.g { background: #28c840; }
+  .preview-body { padding: 32px; display: grid; grid-template-columns: 280px 1fr; gap: 24px; min-height: 400px; }
+  @media (max-width: 768px) { .preview-body { grid-template-columns: 1fr; } }
+
+  .preview-sidebar { }
+  .preview-trace { padding: 12px; border-radius: 8px; margin-bottom: 6px; cursor: default; border: 1px solid transparent; }
+  .preview-trace:first-child { background: var(--surface2); border-color: var(--accent); }
+  .preview-trace-name { font-size: 13px; font-weight: 600; }
+  .preview-trace-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: flex; gap: 8px; }
+  .preview-trace-status { font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 700; text-transform: uppercase; }
+  .preview-trace-status.ok { background: var(--green-dim); color: var(--green); }
+  .preview-trace-status.err { background: var(--red-dim); color: var(--red); }
+
+  .preview-detail { }
+  .preview-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .preview-stat { background: var(--surface2); border-radius: 8px; padding: 14px; }
+  .preview-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .preview-stat-value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .preview-stat-value.green { color: var(--green); }
+  .preview-stat-value.accent { color: var(--accent-light); }
+  .preview-stat-value.amber { color: var(--amber); }
+
+  .preview-chain-title { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .preview-span { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface2); border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+  .span-badge { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+  .span-badge.llm { background: var(--accent-dim); color: var(--accent-light); }
+  .span-badge.tool { background: rgba(167,139,250,0.15); color: #a78bfa; }
+  .span-badge.mem { background: var(--cyan-dim); color: var(--cyan); }
+  .span-dur { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+
+  /* ── How it works ── */
+  .how-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; counter-reset: step; }
+  @media (max-width: 768px) { .how-steps { grid-template-columns: 1fr; } }
+  .how-step { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 32px; counter-increment: step; position: relative; }
+  .how-step::before { content: counter(step, decimal-leading-zero); font-size: 48px; font-weight: 800; color: var(--surface3); position: absolute; top: 20px; right: 24px; line-height: 1; }
+  .how-step h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .how-step p { font-size: 14px; color: var(--text-dim); line-height: 1.7; }
+  .how-step code { font-family: var(--mono); font-size: 13px; background: var(--surface2); padding: 2px 8px; border-radius: 4px; color: var(--accent-light); }
+
+  /* ── Pricing ── */
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .pricing-grid { grid-template-columns: 1fr; } }
+  .pricing-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 36px; display: flex; flex-direction: column; }
+  .pricing-card.featured { border-color: var(--accent); box-shadow: 0 0 40px var(--accent-glow); position: relative; }
+  .pricing-popular { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .pricing-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .pricing-desc { font-size: 14px; color: var(--text-dim); margin-bottom: 20px; }
+  .pricing-price { font-size: 36px; font-weight: 800; margin-bottom: 4px; letter-spacing: -1px; }
+  .pricing-price span { font-size: 16px; font-weight: 500; color: var(--text-dim); }
+  .pricing-period { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+  .pricing-features { list-style: none; flex: 1; margin-bottom: 28px; }
+  .pricing-features li { padding: 8px 0; font-size: 14px; color: var(--text-dim); display: flex; align-items: center; gap: 10px; }
+  .pricing-features .check { color: var(--green); font-size: 16px; flex-shrink: 0; }
+  .pricing-btn { width: 100%; text-align: center; justify-content: center; }
+
+  /* ── Comparison table ── */
+  .table-wrap { overflow-x: auto; }
+  .comp-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+  .comp-table th, .comp-table td { padding: 14px 20px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .comp-table th { color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .comp-table td:nth-child(2), .comp-table td:nth-child(3), .comp-table td:nth-child(4) { text-align: center; }
+  .comp-table th:nth-child(2), .comp-table th:nth-child(3), .comp-table th:nth-child(4) { text-align: center; }
+  .comp-check { color: var(--green); font-size: 18px; }
+  .comp-dash { color: var(--text-muted); }
+
+  /* ── CTA ── */
+  .cta { text-align: center; padding: 120px 32px; position: relative; }
+  .cta-glow { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 800px; height: 400px; background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%); pointer-events: none; }
+  .cta-content { position: relative; z-index: 1; }
+  .cta h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; }
+  .cta p { font-size: 17px; color: var(--text-dim); max-width: 500px; margin: 0 auto 32px; }
+
+  /* ── Footer ── */
+  footer { max-width: 1200px; margin: 0 auto; padding: 48px 32px; border-top: 1px solid var(--border); }
+  .footer-inner { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; }
+  @media (max-width: 768px) { .footer-inner { grid-template-columns: 1fr 1fr; } }
+  .footer-brand { }
+  .footer-brand p { font-size: 14px; color: var(--text-dim); margin-top: 12px; max-width: 280px; }
+  .footer-col h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 16px; }
+  .footer-col a { display: block; color: var(--text-dim); text-decoration: none; font-size: 14px; padding: 4px 0; transition: color 0.15s; }
+  .footer-col a:hover { color: var(--text); }
+  .footer-bottom { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo"><div class="nav-mark">&#9678;</div>Lantern</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="https://github.com/seanfraserio/lantern" target="_blank">Open Source</a>
+      <a href="#pricing" class="btn btn-primary">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="dot"></span> Now in Public Beta</div>
+    <h1>Know what your <span class="gradient">agents are doing</span> in production</h1>
+    <p>Full-stack observability for AI agents. Trace reasoning chains, catch quality drift, attribute token costs, and detect PII exposure — before your customers do.</p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn btn-primary btn-lg">Start Free Trial</a>
+      <a href="#demo" class="btn btn-outline btn-lg">See Live Demo</a>
+    </div>
+  </div>
+</div>
+
+<!-- Trust -->
+<div class="trust">
+  <div class="trust-label">Trusted by engineering teams building with AI</div>
+  <div class="trust-logos">
+    <span class="trust-logo">Acme Corp</span>
+    <span class="trust-logo">Nebula AI</span>
+    <span class="trust-logo">Quantum Labs</span>
+    <span class="trust-logo">DataForge</span>
+    <span class="trust-logo">Skyline Systems</span>
+  </div>
+</div>
+
+<!-- Problem / Solution -->
+<section>
+  <div class="section-label">The Problem</div>
+  <h2>AI agents are black boxes in production</h2>
+  <p class="subtitle">When an agent makes a bad decision, you have no idea why. When costs spike, there is no attribution. When quality drifts, nobody notices until users leave.</p>
+
+  <div class="problem-grid">
+    <div class="problem-card before">
+      <h3>Without Lantern</h3>
+      <ul class="problem-list">
+        <li><span class="icon">&#10007;</span> Agent reasoning is invisible — you see inputs and outputs, nothing in between</li>
+        <li><span class="icon">&#10007;</span> No way to trace why an agent chose a specific tool or ignored context</li>
+        <li><span class="icon">&#10007;</span> Token costs are a monthly surprise on the invoice</li>
+        <li><span class="icon">&#10007;</span> Quality degrades silently after model updates or prompt changes</li>
+        <li><span class="icon">&#10007;</span> PII flows through prompts and responses with zero visibility</li>
+        <li><span class="icon">&#10007;</span> Debugging production issues means reading logs and guessing</li>
+      </ul>
+    </div>
+    <div class="problem-card after">
+      <h3>With Lantern</h3>
+      <ul class="problem-list">
+        <li><span class="icon">&#10003;</span> Every reasoning step is a span — LLM calls, tool use, retrieval, custom logic</li>
+        <li><span class="icon">&#10003;</span> Click through the full decision tree to see why the agent did what it did</li>
+        <li><span class="icon">&#10003;</span> Token costs attributed per agent, per workflow, per span, per day</li>
+        <li><span class="icon">&#10003;</span> Automated quality scoring with baseline regression alerts</li>
+        <li><span class="icon">&#10003;</span> PII detection scans every prompt and response in real time</li>
+        <li><span class="icon">&#10003;</span> Traces link directly to the reasoning step that caused the issue</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Dashboard Preview -->
+<div class="preview" id="demo">
+  <div class="preview-frame">
+    <div class="preview-bar">
+      <div class="preview-dot r"></div>
+      <div class="preview-dot y"></div>
+      <div class="preview-dot g"></div>
+    </div>
+    <div class="preview-body">
+      <div class="preview-sidebar">
+        <div class="preview-trace">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="preview-trace-name">support-triage</span>
+            <span class="preview-trace-status ok">success</span>
+          </div>
+          <div class="preview-trace-meta">
+            <span>production</span><span>480ms</span><span>$0.0066</span>
+          </div>
+        </div>
+        <div class="preview-trace">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="preview-trace-name">data-pipeline</span>
+            <span class="preview-trace-status ok">success</span>
+          </div>
+          <div class="preview-trace-meta">
+            <span>production</span><span>835ms</span><span>$0.0048</span>
+          </div>
+        </div>
+        <div class="preview-trace">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="preview-trace-name">code-reviewer</span>
+            <span class="preview-trace-status err">error</span>
+          </div>
+          <div class="preview-trace-meta">
+            <span>staging</span><span>51ms</span><span>$0.0000</span>
+          </div>
+        </div>
+        <div class="preview-trace">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="preview-trace-name">research-assistant</span>
+            <span class="preview-trace-status ok">success</span>
+          </div>
+          <div class="preview-trace-meta">
+            <span>dev</span><span>418ms</span><span>$0.0008</span>
+          </div>
+        </div>
+      </div>
+      <div class="preview-detail">
+        <div class="preview-stats">
+          <div class="preview-stat"><div class="preview-stat-label">Status</div><div class="preview-stat-value green">Success</div></div>
+          <div class="preview-stat"><div class="preview-stat-label">Duration</div><div class="preview-stat-value">480ms</div></div>
+          <div class="preview-stat"><div class="preview-stat-label">Tokens</div><div class="preview-stat-value accent">1,047</div></div>
+          <div class="preview-stat"><div class="preview-stat-label">Cost</div><div class="preview-stat-value amber">$0.0066</div></div>
+        </div>
+        <div class="preview-chain-title">Reasoning Chain (4 spans)</div>
+        <div class="preview-span"><span class="span-badge llm">llm call</span> Classify ticket urgency <span class="span-dur">151ms</span></div>
+        <div class="preview-span" style="margin-left:20px;"><span class="span-badge tool">tool call</span> route_ticket <span class="span-dur">51ms</span></div>
+        <div class="preview-span" style="margin-left:20px;"><span class="span-badge mem">retrieval</span> Similar past incidents <span class="span-dur">84ms</span></div>
+        <div class="preview-span"><span class="span-badge llm">llm call</span> Generate action plan <span class="span-dur">201ms</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<section id="features" class="section-centered">
+  <div class="section-label">Platform Capabilities</div>
+  <h2>Enterprise-grade agent observability</h2>
+  <p class="subtitle">Everything you need to run AI agents in production with confidence.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon purple">&#128269;</div>
+      <h3>Reasoning Chain Tracing</h3>
+      <p>Every agent decision is captured as a span. LLM calls, tool invocations, memory retrievals, and custom reasoning steps — all linked in a navigable tree.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon green">&#9989;</div>
+      <h3>Automated Quality Scoring</h3>
+      <p>Built-in scorers for relevance, toxicity, and latency. Register custom scorers for domain-specific checks. Baseline snapshots detect regressions automatically.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon amber">&#128176;</div>
+      <h3>Token Cost Attribution</h3>
+      <p>Per-span cost tracking by model, agent, and workflow. See exactly where your budget goes — down to individual tool calls. No more surprise invoices.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon red">&#128274;</div>
+      <h3>PII Detection</h3>
+      <p>Scan every prompt and response for emails, phone numbers, SSNs, credit cards, and more. Flag or auto-redact before PII reaches your logs. SOC2-ready.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon cyan">&#128268;</div>
+      <h3>Auto-Instrumentation</h3>
+      <p>Wrap your Anthropic or OpenAI client with one function call. Every API call is traced automatically — zero config, zero code changes to your agent logic.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon purple">&#128200;</div>
+      <h3>Data Source Tracking</h3>
+      <p>See which services, SDK versions, and exporters are sending traces. Filter by source, environment, or agent. Know exactly where your data comes from.</p>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how-it-works">
+  <div class="section-label">Integration</div>
+  <h2>Three lines of code. Full visibility.</h2>
+  <p class="subtitle">Add Lantern to your existing agent code in under a minute. No infrastructure changes required.</p>
+
+  <div class="how-steps">
+    <div class="how-step">
+      <h3>Install the SDK</h3>
+      <p>One package. Works with Node.js 20+. TypeScript-first with full type safety.</p>
+      <br />
+      <code>npm install @lantern-ai/sdk</code>
+    </div>
+    <div class="how-step">
+      <h3>Wrap your AI client</h3>
+      <p>Call <code>wrapAnthropicClient()</code> or <code>wrapOpenAIClient()</code>. All API calls are now traced automatically with full input/output capture.</p>
+    </div>
+    <div class="how-step">
+      <h3>View in dashboard</h3>
+      <p>Traces flow to the Lantern dashboard in real time. Click through reasoning chains, inspect spans, and track quality metrics from day one.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section id="pricing" class="section-centered">
+  <div class="section-label">Pricing</div>
+  <h2>Start free, scale with confidence</h2>
+  <p class="subtitle">No credit card required. Upgrade when your agents are in production.</p>
+
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <div class="pricing-name">Community</div>
+      <div class="pricing-desc">Self-hosted, open source</div>
+      <div class="pricing-price">$0 <span>forever</span></div>
+      <div class="pricing-period">MIT License</div>
+      <ul class="pricing-features">
+        <li><span class="check">&#10003;</span> Full trace capture (SDK)</li>
+        <li><span class="check">&#10003;</span> SQLite + Postgres storage</li>
+        <li><span class="check">&#10003;</span> Dashboard (traces, metrics, sources)</li>
+        <li><span class="check">&#10003;</span> Latency + cost scorers</li>
+        <li><span class="check">&#10003;</span> Custom eval scorers</li>
+        <li><span class="check">&#10003;</span> Unlimited agents and traces</li>
+        <li><span class="check">&#10003;</span> Community support</li>
+      </ul>
+      <a href="https://github.com/seanfraserio/lantern" class="btn btn-outline pricing-btn" target="_blank">View on GitHub</a>
+    </div>
+    <div class="pricing-card featured">
+      <div class="pricing-popular">Most Popular</div>
+      <div class="pricing-name">Team</div>
+      <div class="pricing-desc">Managed cloud for growing teams</div>
+      <div class="pricing-price">$299 <span>/ month</span></div>
+      <div class="pricing-period">Up to 1M traces/month</div>
+      <ul class="pricing-features">
+        <li><span class="check">&#10003;</span> Everything in Community</li>
+        <li><span class="check">&#10003;</span> Managed cloud ingest (99.9% SLA)</li>
+        <li><span class="check">&#10003;</span> PII detection + auto-redaction</li>
+        <li><span class="check">&#10003;</span> Slack + webhook alerting</li>
+        <li><span class="check">&#10003;</span> Team-scoped RBAC</li>
+        <li><span class="check">&#10003;</span> 90-day trace retention</li>
+        <li><span class="check">&#10003;</span> Email support</li>
+      </ul>
+      <a href="mailto:enterprise@lantern-ai.dev" class="btn btn-primary pricing-btn">Start Free Trial</a>
+    </div>
+    <div class="pricing-card">
+      <div class="pricing-name">Enterprise</div>
+      <div class="pricing-desc">For regulated, high-scale workloads</div>
+      <div class="pricing-price">Custom</div>
+      <div class="pricing-period">Unlimited traces</div>
+      <ul class="pricing-features">
+        <li><span class="check">&#10003;</span> Everything in Team</li>
+        <li><span class="check">&#10003;</span> SOC2 / HIPAA audit export</li>
+        <li><span class="check">&#10003;</span> PagerDuty integration</li>
+        <li><span class="check">&#10003;</span> SSO / SAML</li>
+        <li><span class="check">&#10003;</span> Custom trace retention</li>
+        <li><span class="check">&#10003;</span> Dedicated ingest endpoint</li>
+        <li><span class="check">&#10003;</span> Dedicated support + SLA</li>
+      </ul>
+      <a href="mailto:enterprise@lantern-ai.dev" class="btn btn-outline pricing-btn">Contact Sales</a>
+    </div>
+  </div>
+</section>
+
+<!-- Feature comparison -->
+<section>
+  <div class="section-label">Feature Comparison</div>
+  <h2>Full breakdown by tier</h2>
+  <p class="subtitle">Choose the plan that fits your compliance, scale, and support needs.</p>
+
+  <div class="table-wrap">
+    <table class="comp-table">
+      <thead><tr><th>Feature</th><th>Community</th><th>Team</th><th>Enterprise</th></tr></thead>
+      <tbody>
+        <tr><td>Trace capture SDK</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Auto-instrumentation (Anthropic, OpenAI)</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Dashboard (traces, metrics, sources)</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Custom evaluation scorers</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Self-hosted deployment</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Managed cloud ingest</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>PII detection + redaction</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Alerting (Slack, webhooks)</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Team-scoped RBAC</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>SOC2 / HIPAA audit export</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>PagerDuty integration</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>SSO / SAML</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Dedicated support + SLA</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta">
+  <div class="cta-glow"></div>
+  <div class="cta-content">
+    <h2>Stop guessing what your agents are doing</h2>
+    <p>Deploy Lantern in under a minute. Self-host for free or start a managed cloud trial.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <a href="mailto:enterprise@lantern-ai.dev" class="btn btn-primary btn-lg">Start Free Trial</a>
+      <a href="https://github.com/seanfraserio/lantern" class="btn btn-outline btn-lg" target="_blank">View Source on GitHub</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a href="/" class="nav-logo" style="margin-bottom:8px;"><div class="nav-mark">&#9678;</div>Lantern</a>
+      <p>Enterprise-grade observability for AI agents. Open source core, managed cloud, and on-premise enterprise deployments.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#demo">Live Demo</a>
+      <a href="https://github.com/seanfraserio/lantern/tree/main/docs" target="_blank">Documentation</a>
+    </div>
+    <div class="footer-col">
+      <h4>Developers</h4>
+      <a href="https://github.com/seanfraserio/lantern" target="_blank">GitHub</a>
+      <a href="https://github.com/seanfraserio/lantern/tree/main/docs/sdk-reference.md" target="_blank">SDK Reference</a>
+      <a href="https://github.com/seanfraserio/lantern/tree/main/docs/self-hosting.md" target="_blank">Self-Hosting</a>
+      <a href="https://github.com/seanfraserio/lantern/blob/main/CONTRIBUTING.md" target="_blank">Contributing</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="mailto:enterprise@lantern-ai.dev">Contact Sales</a>
+      <a href="mailto:enterprise@lantern-ai.dev">Enterprise Inquiries</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>MIT License (OSS) &middot; BUSL-1.1 (Enterprise)</span>
+    <span>&copy; 2026 Lantern AI</span>
+  </div>
+</footer>
+
+</body>
+</html>
