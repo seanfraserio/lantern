@@ -36,32 +36,33 @@ Lantern's OSS version is self-hosted. The Team ($299/mo) and Enterprise (custom)
 ```
 Internet
   │
-  └─ Google Cloud Load Balancer (managed TLS)
-       │
-       ├─ ingest.openlanternai.com  →  Ingest Service
-       ├─ app.openlanternai.com     →  Dashboard Service
-       └─ api.openlanternai.com     →  API Service
-                                          │
-                                   Cloud SQL Postgres 16
-                                   (schema-per-tenant)
+  ├─ ingest.openlanternai.com  →  GKE Ingress → Ingest Service (pods)
+  ├─ api.openlanternai.com     →  GKE Ingress → API Service (pods)
+  ├─ app.openlanternai.com     →  Cloud Storage + CDN (static SPA)
+  │                                      │
+  │                               Cloud SQL Postgres 16
+  │                               (schema-per-tenant)
+  │
+  └─ All services connect via Cloud SQL Auth Proxy sidecar
 ```
 
-Three stateless services running as GKE Autopilot deployments in a single cluster. All services connect to one Cloud SQL Postgres instance.
+Two stateless services running as GKE Autopilot deployments, plus a static dashboard served from Cloud Storage + CDN. Both services connect to one Cloud SQL Postgres instance.
 
 ### 3.2 Services
 
 **Ingest Service** (`packages/ingest` — adapted)
 - Existing Fastify server with multi-tenant middleware
 - Accepts `POST /v1/traces` with Bearer token auth
-- Resolves API key to tenant, sets Postgres `search_path` to tenant schema
+- Resolves API key to tenant, uses fully qualified table names (`tenant_<slug>.traces`) for all queries
 - Horizontally scalable — stateless, any pod handles any tenant
 - HPA: 1-10 pods, scale on CPU utilization (target 70%)
 
-**Dashboard Service** (`packages/ingest` — dashboard routes, adapted)
-- Serves the web dashboard UI
-- Authenticates users via JWT cookie/header
-- All trace/metrics queries scoped to the authenticated tenant's schema
-- HPA: 1-3 pods
+**Dashboard** (static assets served from Cloud Storage + CDN)
+- The dashboard is a static single-page app (the existing inline HTML or a future React build from `packages/dashboard`)
+- Served from a Cloud Storage bucket behind Cloud CDN — no GKE pods needed
+- Authenticates users via JWT, makes API calls to `api.openlanternai.com`
+- All trace/metrics queries go through the API service, scoped to the authenticated tenant's schema
+- Zero compute cost — static hosting only
 
 **API Service** (new package: `packages/api`)
 - Tenant lifecycle: signup, onboarding, schema provisioning
@@ -79,7 +80,7 @@ Three stateless services running as GKE Autopilot deployments in a single cluste
 CREATE TABLE tenants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,           -- used as schema name prefix
+  slug TEXT UNIQUE NOT NULL,           -- used as schema name; validated: /^[a-z0-9-]{3,32}$/
   plan TEXT NOT NULL DEFAULT 'team',   -- 'team' | 'enterprise'
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
@@ -105,6 +106,7 @@ CREATE TABLE api_keys (
   key_prefix TEXT NOT NULL,            -- first 8 chars for identification
   name TEXT NOT NULL,                  -- human-readable label
   last_used_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,             -- null = active, set = revoked
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -156,7 +158,7 @@ CREATE INDEX idx_traces_start ON traces(start_time DESC);
 1. Client sends `Authorization: Bearer lnt_<key>` header
 2. Ingest service hashes the key with SHA-256
 3. Looks up `key_hash` in `public.api_keys`
-4. Resolves `tenant_id`, sets Postgres `search_path = tenant_<slug>`
+4. Resolves `tenant_id` and `tenant_slug`, uses fully qualified table names for all queries
 5. Cache the key→tenant mapping in-memory (LRU, 5-min TTL) to avoid DB lookup on every request
 
 **Dashboard (human users):**
@@ -184,10 +186,10 @@ SDK Client
         ├─ 2. Hash token, check LRU cache
         │     Cache miss → query public.api_keys
         ├─ 3. Resolve tenant_id → tenant slug
-        ├─ 4. SET search_path = 'tenant_<slug>'
-        ├─ 5. INSERT INTO traces (existing store logic)
-        ├─ 6. UPDATE public.usage SET trace_count = trace_count + N
-        └─ 7. Return { accepted: N }
+        ├─ 4. INSERT INTO tenant_<slug>.traces (fully qualified)
+        ├─ 5. Buffer usage increment in-memory
+        │     (flush to public.usage every 30s or 100 traces)
+        └─ 6. Return { accepted: N }
 ```
 
 ### 3.6 Tenant Provisioning Flow
@@ -195,8 +197,8 @@ SDK Client
 ```
 New Customer Signup
   │
-  ├─ 1. POST /api/tenants → create tenant record in public.tenants
-  ├─ 2. CREATE SCHEMA tenant_<slug>
+  ├─ 1. POST /api/tenants → validate slug (/^[a-z0-9-]{3,32}$/), create record
+  ├─ 2. CREATE SCHEMA using quote_ident('tenant_' || slug) — safe DDL
   ├─ 3. Run migrations in the new schema (create traces table + indexes)
   ├─ 4. Create owner user in public.users
   ├─ 5. Generate first API key, return to user (shown once)
@@ -211,13 +213,15 @@ New Customer Signup
 - **Region:** us-central1 (cheapest, low latency for US customers)
 - **Namespaces:** `lantern-prod`, `lantern-staging`
 - **Resource requests per pod:**
-  - Ingest: 0.25 vCPU, 512MB RAM
-  - Dashboard: 0.25 vCPU, 256MB RAM
-  - API: 0.25 vCPU, 256MB RAM
+  - Ingest: 0.25 vCPU, 512MB RAM + Cloud SQL Auth Proxy sidecar (0.1 vCPU, 64MB)
+  - API: 0.25 vCPU, 256MB RAM + Cloud SQL Auth Proxy sidecar (0.1 vCPU, 64MB)
 - **HPA configuration:**
   - Ingest: min 1, max 10, target CPU 70%
-  - Dashboard: min 1, max 3, target CPU 70%
   - API: min 1, max 2, target CPU 70%
+- **Health probes (all services):**
+  - Liveness: `GET /health` (HTTP 200), period 15s, failure threshold 3
+  - Readiness: `GET /health` (checks DB connectivity), period 10s, failure threshold 2
+  - Startup: `GET /health`, period 5s, failure threshold 6 (30s max startup)
 
 ### 4.2 Cloud SQL
 
@@ -225,14 +229,17 @@ New Customer Signup
 - **Storage:** 10GB SSD, auto-grow enabled
 - **Connectivity:** Private IP (VPC peering with GKE)
 - **Backups:** Daily automated, 7-day retention
-- **Flags:** `max_connections=100`, `shared_buffers=128MB`
+- **Flags:** `max_connections=50` (sufficient for 2-3 services with pooling)
+- **Shared buffers:** Use Cloud SQL default (let GCP manage for f1-micro)
+- **Connection strategy:** Cloud SQL Auth Proxy as a sidecar container in each deployment (Google-recommended pattern for GKE). Application-side pool sizes: ingest 10, API 5 per pod.
 - **Upgrade path:** db-g1-small ($25/mo) when connection count or memory pressure increases
 
 ### 4.3 Networking
 
 - **Google Cloud Ingress** with Google-managed TLS certificates
-- **3 host rules:** `ingest.openlanternai.com`, `app.openlanternai.com`, `api.openlanternai.com`
-- **Cloud DNS:** Managed zone for `openlanternai.com`, A records pointing to Ingress IP
+- **2 host rules:** `ingest.openlanternai.com`, `api.openlanternai.com` (dashboard is Cloud Storage + CDN)
+- **Cloud DNS:** Managed zone for `openlanternai.com`, A records for ingest/api to Ingress IP, CNAME for app to CDN
+- **CORS:** API and Ingest services must set `Access-Control-Allow-Origin: https://app.openlanternai.com` since the dashboard SPA makes cross-origin requests
 - **No Traefik** — native Ingress sufficient at this stage
 
 ### 4.4 Secrets
@@ -257,12 +264,12 @@ infra/
 ├── dns.ts                # Cloud DNS zone + records
 ├── secrets.ts            # Secret Manager secrets
 ├── iam.ts                # Service accounts + IAM bindings
+├── storage.ts            # Cloud Storage bucket + CDN for dashboard SPA
 ├── k8s/
 │   ├── namespaces.ts     # prod + staging namespaces
-│   ├── ingest.ts         # Deployment, Service, HPA
-│   ├── dashboard.ts      # Deployment, Service, HPA
-│   ├── api.ts            # Deployment, Service, HPA
-│   └── ingress.ts        # Ingress with TLS + host rules
+│   ├── ingest.ts         # Deployment, Service, HPA + Cloud SQL Auth Proxy sidecar
+│   ├── api.ts            # Deployment, Service, HPA + Cloud SQL Auth Proxy sidecar
+│   └── ingress.ts        # Ingress with TLS + host rules (ingest + api only)
 ├── Pulumi.yaml
 ├── Pulumi.prod.yaml
 └── Pulumi.staging.yaml
@@ -282,10 +289,11 @@ Extends the existing `.github/workflows/ci.yml`:
 
 **On tag `v*`:**
 1. Run full CI
-2. Deploy to `lantern-staging` namespace via `kubectl set image`
+2. Deploy to `lantern-staging` via `pulumi up --stack staging` (updates image tag in deployment spec)
 3. Run smoke tests against staging
 4. Manual approval gate (GitHub Environment protection rules)
-5. Deploy to `lantern-prod` namespace
+5. Deploy to `lantern-prod` via `pulumi up --stack prod`
+6. Upload dashboard static assets to Cloud Storage bucket
 
 **Docker images:**
 
@@ -322,27 +330,38 @@ Key modules:
 
 ### 5.2 Modify: `packages/ingest`
 
-- Implement `PostgresTraceStore` (currently a stub)
-- Add tenant resolution middleware (API key → schema)
-- Add usage increment on trace insert
-- Add connection pooling (use `pg` with pool)
-- Keep SQLite store for OSS self-hosted mode (feature flag or env var)
+- Implement `PostgresTraceStore` (currently a stub) using fully qualified table names (`tenant_<slug>.traces`)
+- Add tenant resolution middleware (API key → slug lookup, with LRU cache, 5-min TTL)
+- Add buffered usage tracking (flush to `public.usage` every 30s or 100 traces)
+- Add connection pooling (use `pg` with pool, size 10 per pod)
+- Add CORS middleware: allow origin `https://app.openlanternai.com`
+- Keep SQLite store for OSS self-hosted mode (feature flag via `STORE_TYPE` env var)
+- Revoked key check: filter `WHERE revoked_at IS NULL` in key lookup; cache TTL handles delay (5 min max)
 
-### 5.3 Modify: `packages/ingest/routes/dashboard.ts`
+### 5.3 Dashboard: Static SPA on Cloud Storage
 
-- Add JWT authentication for dashboard access
-- Scope all API calls to the authenticated tenant's schema
-- Add login page / auth redirect
+- Extract the dashboard into a standalone static build (HTML/CSS/JS)
+- Served from Cloud Storage bucket behind Cloud CDN
+- Authenticates via JWT, calls `api.openlanternai.com` for all data
+- No GKE pods needed — eliminates a deployment entirely
+- For OSS self-hosted mode, the existing inline dashboard in the ingest server remains unchanged
 
-### 5.4 New: `infra/` directory
+### 5.4 Schema Migrations
+
+- Tenant schema creation uses `quote_ident()` for safe DDL
+- Migrations tracked in a `public.schema_versions` table (`tenant_id`, `version`, `applied_at`)
+- On deploy, a migration runner iterates all tenant schemas and applies pending migrations
+- Migrations are idempotent (use `IF NOT EXISTS` / `IF EXISTS` guards)
+
+### 5.5 New: `infra/` directory
 
 Pulumi TypeScript project for all GCP infrastructure.
 
-### 5.5 New: Dockerfiles
+### 5.6 New: Dockerfiles
 
-One per service, multi-stage builds from the monorepo root.
+One per service (ingest, api), multi-stage builds from the monorepo root. Use `pnpm --filter` to create minimal images per service.
 
-### 5.6 Modify: `.github/workflows/`
+### 5.7 Modify: `.github/workflows/`
 
 - New `deploy.yml` workflow for image build + GKE deployment
 - Add staging and production environments with protection rules
@@ -366,15 +385,16 @@ Early stage, minimal traffic, no paying customers yet:
 
 | Resource | Spec | Monthly |
 |---|---|---|
-| GKE Autopilot | ~3-5 pods avg (0.25 vCPU, 512MB) | $35-50 |
+| GKE Autopilot | ~2-3 pods (ingest + api + sidecars) | $25-40 |
 | Cloud SQL Postgres | db-f1-micro, 10GB SSD | $9 |
 | Cloud SQL storage growth | 10-50GB | $2-5 |
+| Cloud Storage + CDN | Dashboard static assets, <1GB | $1 |
 | Artifact Registry | ~2GB container images | $1 |
-| Cloud Load Balancer | 1 LB, 3 forwarding rules | $18 |
+| Cloud Load Balancer | 1 LB, 2 forwarding rules | $15 |
 | Cloud DNS | 1 zone | $0.50 |
 | Secret Manager | 4 secrets | $0.50 |
 | Network egress | <10GB | $1 |
-| **Total** | | **$65-85** |
+| **Total** | | **$55-75** |
 
 **Break-even: 1 Team customer ($299/mo).**
 
