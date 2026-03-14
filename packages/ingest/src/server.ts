@@ -10,17 +10,37 @@ export interface IngestServerConfig {
   host: string;
   store?: ITraceStore;
   dbPath?: string;
+  apiKey?: string;
 }
 
 export async function createServer(config?: Partial<IngestServerConfig>) {
   const port = config?.port ?? parseInt(process.env.PORT ?? "4100", 10);
-  const host = config?.host ?? "0.0.0.0";
+  const host = config?.host ?? "127.0.0.1";
 
   const store = config?.store ?? new SqliteTraceStore(config?.dbPath ?? "lantern.db");
+  const apiKey = config?.apiKey ?? process.env.LANTERN_API_KEY;
 
   const app = Fastify({
     logger: true,
   });
+
+  // Security headers
+  app.addHook("onSend", async (_request, reply) => {
+    reply.header("X-Content-Type-Options", "nosniff");
+    reply.header("X-Frame-Options", "DENY");
+    reply.header("X-XSS-Protection", "1; mode=block");
+  });
+
+  // API key auth for /v1/ routes
+  if (apiKey) {
+    app.addHook("onRequest", async (request, reply) => {
+      if (!request.url.startsWith("/v1/")) return;
+      const auth = request.headers.authorization;
+      if (!auth || auth !== `Bearer ${apiKey}`) {
+        return reply.status(401).send({ error: "Unauthorized" });
+      }
+    });
+  }
 
   // Register routes
   registerDashboardRoutes(app);

@@ -19,10 +19,10 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
         accepted: traces.length,
       } satisfies TraceIngestResponse);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      request.log.error(error);
       return reply.status(500).send({
         accepted: 0,
-        errors: [message],
+        errors: ["Internal server error"],
       } satisfies TraceIngestResponse);
     }
   });
@@ -33,8 +33,8 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
       const traces = await store.queryTraces(request.query);
       return reply.status(200).send({ traces });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return reply.status(500).send({ error: message });
+      request.log.error(error);
+      return reply.status(500).send({ error: "Internal server error" });
     }
   });
 
@@ -44,8 +44,8 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
       const sources = await store.getSources();
       return reply.status(200).send({ sources });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return reply.status(500).send({ error: message });
+      _request.log.error(error);
+      return reply.status(500).send({ error: "Internal server error" });
     }
   });
 
@@ -58,8 +58,8 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
       }
       return reply.status(200).send(trace);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return reply.status(500).send({ error: message });
+      request.log.error(error);
+      return reply.status(500).send({ error: "Internal server error" });
     }
   });
 }

@@ -326,8 +326,8 @@ function renderTraceList() {
     const time = new Date(t.startTime).toLocaleTimeString();
     const spans = (t.spans || []).length;
     const svc = t.source?.serviceName;
-    return '<div class="trace-item' + (selectedTraceId === t.id ? ' selected' : '') + '" data-id="' + t.id + '">' +
-      '<div class="trace-header"><span class="trace-agent">' + esc(t.agentName) + '</span><span class="trace-status ' + t.status + '">' + t.status + '</span></div>' +
+    return '<div class="trace-item' + (selectedTraceId === t.id ? ' selected' : '') + '" data-id="' + esc(t.id) + '">' +
+      '<div class="trace-header"><span class="trace-agent">' + esc(t.agentName) + '</span><span class="trace-status ' + cls(t.status) + '">' + esc(t.status) + '</span></div>' +
       '<div class="trace-meta">' +
         (svc ? '<span class="source-tag">' + esc(svc) + '</span>' : '') +
         '<span>' + esc(t.environment) + '</span>' +
@@ -360,9 +360,9 @@ function renderTraceDetail(t) {
   const time = new Date(t.startTime).toLocaleString();
 
   let html = '<div class="detail-header">' +
-    '<div class="detail-title"><span class="trace-status ' + t.status + '">' + t.status + '</span> ' +
+    '<div class="detail-title"><span class="trace-status ' + cls(t.status) + '">' + esc(t.status) + '</span> ' +
     esc(t.agentName) + (t.agentVersion ? ' <span style="color:var(--text-dim);font-weight:400;font-size:14px">v' + esc(t.agentVersion) + '</span>' : '') +
-    '</div><div class="detail-id">' + t.id + '</div>' +
+    '</div><div class="detail-id">' + esc(t.id) + '</div>' +
     '<div class="detail-stats">' +
       detailStat('Environment', t.environment) +
       detailStat('Duration', (t.durationMs || '?') + 'ms') +
@@ -401,7 +401,7 @@ function renderTraceDetail(t) {
 }
 
 function detailStat(label, value) {
-  return '<div class="detail-stat"><div class="detail-stat-label">' + label + '</div><div class="detail-stat-value">' + value + '</div></div>';
+  return '<div class="detail-stat"><div class="detail-stat-label">' + esc(label) + '</div><div class="detail-stat-value">' + esc(value) + '</div></div>';
 }
 
 function srcItem(label, value) {
@@ -431,9 +431,9 @@ function renderSpanNode(span, allSpans, depth) {
   }
 
   let html = '<div class="span-node" style="margin-left:' + indent + 'px">' +
-    '<div class="span-connector"><div class="span-line"></div><div class="span-dot ' + span.type + '"></div><div class="span-line"></div></div>' +
+    '<div class="span-connector"><div class="span-line"></div><div class="span-dot ' + cls(span.type) + '"></div><div class="span-line"></div></div>' +
     '<div class="span-card"><div class="span-card-header">' +
-      '<span class="span-type-badge ' + span.type + '">' + span.type.replace('_', ' ') + '</span>' +
+      '<span class="span-type-badge ' + cls(span.type) + '">' + esc(span.type.replace('_', ' ')) + '</span>' +
       '<span class="span-timing">' + (span.durationMs || '?') + 'ms</span></div>' +
       (span.model ? '<div class="span-model">' + esc(span.model) + '</div>' : '') +
       (span.toolName ? '<div class="span-tool">' + esc(span.toolName) + '</div>' : '') +
@@ -483,7 +483,7 @@ function renderSources() {
     html += '<div class="source-card">' +
       '<div class="source-card-header">' +
         '<div class="source-name">' + esc(src.serviceName) + '</div>' +
-        '<span class="source-badge ' + exporterCls + '">' + esc(src.exporterType || 'unknown') + '</span>' +
+        '<span class="source-badge ' + cls(exporterCls) + '">' + esc(src.exporterType || 'unknown') + '</span>' +
       '</div>' +
       '<div class="source-details">' +
         '<div class="source-detail"><div class="source-detail-label">Traces</div><div class="source-detail-value">' + src.traceCount + '</div></div>' +
@@ -493,7 +493,7 @@ function renderSources() {
       '</div>' +
       '<div class="source-agents"><div class="source-agents-label">Environments</div>';
     for (const env of src.environments) {
-      html += '<span class="env-chip ' + env + '">' + esc(env) + '</span>';
+      html += '<span class="env-chip ' + cls(env) + '">' + esc(env) + '</span>';
     }
     html += '</div><div class="source-agents" style="border-top:none;padding-top:8px;"><div class="source-agents-label">Agents</div>';
     for (const agent of src.agents) {
@@ -540,7 +540,7 @@ function renderMetrics() {
   html += '<div class="metric-card"><div class="metric-title">Status Breakdown</div><div class="bar-chart">';
   for (const [status, count] of Object.entries(countByStatus)) {
     const pct = maxStatus > 0 ? (count / maxStatus * 100) : 0;
-    html += '<div class="bar-row"><div class="bar-label">' + status + '</div><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + (statusColors[status] || 'var(--text-dim)') + '"></div></div><div class="bar-value">' + count + '</div></div>';
+    html += '<div class="bar-row"><div class="bar-label">' + esc(status) + '</div><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + (statusColors[status] || 'var(--text-dim)') + '"></div></div><div class="bar-value">' + count + '</div></div>';
   }
   html += '</div></div>';
 
@@ -573,6 +573,7 @@ function barCard(title, data, color, fmt) {
 }
 
 function esc(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+function cls(s) { return String(s || '').replace(/[^a-z0-9_-]/gi, ''); }
 
 init();
 </script>

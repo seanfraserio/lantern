@@ -1,6 +1,11 @@
 import type { ITraceStore, TraceQueryFilter, Trace } from "@lantern-ai/sdk";
 import Database from "better-sqlite3";
 
+function safeJsonParse<T>(value: string | null | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try { return JSON.parse(value) as T; } catch { return fallback; }
+}
+
 /**
  * SQLite-backed trace store. Default for OSS self-hosted deployments.
  */
@@ -44,7 +49,7 @@ export class SqliteTraceStore implements ITraceStore {
 
   async insert(traces: Trace[]): Promise<void> {
     const stmt = this.db.prepare(`
-      INSERT OR REPLACE INTO traces (
+      INSERT OR IGNORE INTO traces (
         id, session_id, agent_name, agent_version, environment,
         start_time, end_time, duration_ms, status,
         total_input_tokens, total_output_tokens, estimated_cost_usd,
@@ -183,10 +188,10 @@ export class SqliteTraceStore implements ITraceStore {
       totalInputTokens: row.total_input_tokens as number,
       totalOutputTokens: row.total_output_tokens as number,
       estimatedCostUsd: row.estimated_cost_usd as number,
-      metadata: JSON.parse(row.metadata as string),
-      source: row.source ? JSON.parse(row.source as string) : undefined,
-      spans: JSON.parse(row.spans as string),
-      scores: row.scores ? JSON.parse(row.scores as string) : undefined,
+      metadata: safeJsonParse(row.metadata as string, {}),
+      source: safeJsonParse(row.source as string | null, undefined),
+      spans: safeJsonParse(row.spans as string, []),
+      scores: safeJsonParse(row.scores as string | null, undefined),
     };
   }
 

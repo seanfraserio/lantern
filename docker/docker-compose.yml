@@ -9,7 +9,7 @@ services:
       - "4100:4100"
     environment:
       - PORT=4100
-      - DATABASE_URL=postgresql://lantern:lantern@postgres:5432/lantern
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-lantern}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/lantern
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,12 +27,10 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_DB: lantern
-      POSTGRES_USER: lantern
-      POSTGRES_PASSWORD: lantern
+      POSTGRES_USER: ${POSTGRES_USER:-lantern}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
