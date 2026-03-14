@@ -283,7 +283,7 @@ Extends the existing `.github/workflows/ci.yml`:
 
 **On push to `main`:**
 1. `pnpm install` → `pnpm typecheck` → `pnpm build` → `pnpm test`
-2. Build Docker images (multi-stage) for ingest, dashboard, api
+2. Build Docker images (multi-stage) for ingest, api
 3. Push to Artifact Registry (`us-central1-docker.pkg.dev/<project>/lantern/`)
 4. Tag images with git SHA
 
