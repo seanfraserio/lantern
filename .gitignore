@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+*.log
+.DS_Store
+
+# Enterprise packages live in a separate private repo
+packages/enterprise/

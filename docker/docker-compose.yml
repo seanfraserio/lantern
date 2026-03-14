@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  ingest:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ingest
+    ports:
+      - "4100:4100"
+    environment:
+      - PORT=4100
+      - DATABASE_URL=postgresql://lantern:lantern@postgres:5432/lantern
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      - LANTERN_API_URL=http://ingest:4100
+    depends_on:
+      - ingest
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: lantern
+      POSTGRES_USER: lantern
+      POSTGRES_PASSWORD: lantern
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lantern"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

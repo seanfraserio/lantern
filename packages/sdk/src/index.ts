@@ -1,0 +1,33 @@
+export { LanternTracer } from "./tracer.js";
+export { AgentSpan } from "./span.js";
+export { wrapAnthropicClient } from "./collectors/anthropic.js";
+export { wrapOpenAIClient } from "./collectors/openai.js";
+export { wrapMcpClient } from "./collectors/mcp.js";
+export { LanternExporter } from "./exporters/lantern.js";
+export type { LanternExporterConfig } from "./exporters/lantern.js";
+export { ConsoleExporter } from "./exporters/console.js";
+export { OtlpExporter } from "./exporters/otlp.js";
+export type { OtlpExporterConfig } from "./exporters/otlp.js";
+export type {
+  Trace,
+  TraceSource,
+  TraceStatus,
+  Span,
+  SpanType,
+  SpanInput,
+  SpanOutput,
+  EvalScore,
+  TracerConfig,
+  ITraceExporter,
+  StartTraceOpts,
+  StartSpanOpts,
+  Scorer,
+  Baseline,
+  EvalRunResult,
+  Regression,
+  TraceIngestRequest,
+  TraceIngestResponse,
+  ITraceStore,
+  SourceSummary,
+  TraceQueryFilter,
+} from "./types.js";
