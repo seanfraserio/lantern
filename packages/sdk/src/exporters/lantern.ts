@@ -25,6 +25,11 @@ export class LanternExporter implements ITraceExporter {
     this.retryBaseDelayMs = config.retryBaseDelayMs ?? 1000;
   }
 
+  private async backoff(attempt: number): Promise<void> {
+    const delay = this.retryBaseDelayMs * Math.pow(2, attempt);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
   async export(traces: Trace[]): Promise<void> {
     if (traces.length === 0) return;
 
@@ -48,8 +53,7 @@ export class LanternExporter implements ITraceExporter {
 
         // Retry on 5xx
         if (response.status >= 500 && attempt < this.maxRetries) {
-          const delay = this.retryBaseDelayMs * Math.pow(2, attempt);
-          await new Promise((resolve) => setTimeout(resolve, delay));
+          await this.backoff(attempt);
           continue;
         }
 
@@ -60,8 +64,7 @@ export class LanternExporter implements ITraceExporter {
       } catch (error) {
         if (attempt < this.maxRetries && error instanceof TypeError) {
           // Network error — retry
-          const delay = this.retryBaseDelayMs * Math.pow(2, attempt);
-          await new Promise((resolve) => setTimeout(resolve, delay));
+          await this.backoff(attempt);
           continue;
         }
         throw error;

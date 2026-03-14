@@ -41,12 +41,12 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
   });
 
   // GET /v1/sources — list connected data sources
-  app.get("/v1/sources", async (_request, reply) => {
+  app.get("/v1/sources", async (request, reply) => {
     try {
       const sources = await store.getSources();
       return reply.status(200).send({ sources });
     } catch (error) {
-      _request.log.error(error);
+      request.log.error(error);
       return reply.status(500).send({ error: "Internal server error" });
     }
   });

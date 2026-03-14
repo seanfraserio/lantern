@@ -46,9 +46,7 @@ export class LanternTracer {
     }, this.flushIntervalMs);
 
     // Unref the timer so it doesn't keep the process alive
-    if (this.flushTimer && typeof this.flushTimer === "object" && "unref" in this.flushTimer) {
-      this.flushTimer.unref();
-    }
+    this.flushTimer.unref();
   }
 
   /**
@@ -111,15 +109,9 @@ export class LanternTracer {
     const trace = this.traces.get(completedSpan.traceId);
     if (trace) {
       trace.spans.push(completedSpan);
-      if (completedSpan.inputTokens) {
-        trace.totalInputTokens += completedSpan.inputTokens;
-      }
-      if (completedSpan.outputTokens) {
-        trace.totalOutputTokens += completedSpan.outputTokens;
-      }
-      if (completedSpan.estimatedCostUsd) {
-        trace.estimatedCostUsd += completedSpan.estimatedCostUsd;
-      }
+      trace.totalInputTokens += completedSpan.inputTokens ?? 0;
+      trace.totalOutputTokens += completedSpan.outputTokens ?? 0;
+      trace.estimatedCostUsd += completedSpan.estimatedCostUsd ?? 0;
     }
 
     this.activeSpans.delete(spanId);

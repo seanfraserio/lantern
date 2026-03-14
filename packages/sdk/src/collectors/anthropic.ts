@@ -149,7 +149,7 @@ export function wrapAnthropicClient<T extends AnthropicClient>(
   };
 
   // Replace the create method with the wrapped version
-  (client.messages as unknown as Record<string, unknown>).create = wrappedCreate;
+  Object.assign(client.messages, { create: wrappedCreate });
 
   return client;
 }

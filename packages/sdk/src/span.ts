@@ -39,7 +39,7 @@ export class AgentSpan {
     this.span.output = output;
     if (opts?.inputTokens !== undefined) this.span.inputTokens = opts.inputTokens;
     if (opts?.outputTokens !== undefined) this.span.outputTokens = opts.outputTokens;
-    if (opts?.error) this.span.error = opts.error;
+    if (opts?.error !== undefined) this.span.error = opts.error;
     if (this.span.inputTokens && this.span.outputTokens && this.span.model) {
       this.span.estimatedCostUsd = estimateCost(
         this.span.model,

@@ -1,4 +1,4 @@
-import type { ITraceStore, TraceQueryFilter, Trace } from "@lantern-ai/sdk";
+import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@lantern-ai/sdk";
 import Database from "better-sqlite3";
 
 function safeJsonParse<T>(value: string | null | undefined, fallback: T): T {
@@ -139,15 +139,7 @@ export class SqliteTraceStore implements ITraceStore {
     return result.count;
   }
 
-  async getSources(): Promise<Array<{
-    serviceName: string;
-    sdkVersion?: string;
-    exporterType?: string;
-    traceCount: number;
-    lastSeen: number;
-    environments: string[];
-    agents: string[];
-  }>> {
+  async getSources(): Promise<SourceSummary[]> {
     const rows = this.db.prepare(`
       SELECT
         json_extract(source, '$.serviceName') as service_name,
