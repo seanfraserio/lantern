@@ -11,6 +11,7 @@ services:
       - PORT=4100
       - STORE_TYPE=sqlite
       - DB_PATH=/data/lantern.db
+      - LANTERN_API_KEY=${LANTERN_API_KEY:-}
     volumes:
       - ./data:/data
 

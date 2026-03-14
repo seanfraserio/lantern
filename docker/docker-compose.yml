@@ -10,6 +10,7 @@ services:
     environment:
       - PORT=4100
       - DATABASE_URL=postgresql://${POSTGRES_USER:-lantern}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/lantern
+      - LANTERN_API_KEY=${LANTERN_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

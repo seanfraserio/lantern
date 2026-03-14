@@ -23,6 +23,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
 
   const app = Fastify({
     logger: true,
+    bodyLimit: 1_048_576,
   });
 
   // Security headers
@@ -49,7 +50,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   }
 
   // Register routes
-  registerDashboardRoutes(app);
+  registerDashboardRoutes(app, apiKey);
   registerTraceRoutes(app, store);
   registerHealthRoutes(app, store);
 

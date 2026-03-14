@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
 
-export function registerDashboardRoutes(app: FastifyInstance): void {
+export function registerDashboardRoutes(app: FastifyInstance, apiKey?: string): void {
   app.get("/", async (_request, reply) => {
-    return reply.type("text/html").send(DASHBOARD_HTML);
+    const html = DASHBOARD_HTML.replace('/*__API_KEY_INJECT__*/', apiKey ? `window.__LANTERN_API_KEY__ = ${JSON.stringify(apiKey)};` : '');
+    return reply.type("text/html").send(html);
   });
 }
 
@@ -205,6 +206,11 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
 </main>
 
 <script>
+/*__API_KEY_INJECT__*/
+function authHeaders() {
+  const key = window.__LANTERN_API_KEY__;
+  return key ? { 'Authorization': 'Bearer ' + key } : {};
+}
 const API = window.location.origin;
 let allTraces = [];
 let allSources = [];
@@ -245,7 +251,7 @@ function setupNav() {
 // ── Load data ──
 async function loadTraces() {
   try {
-    const r = await fetch(API + '/v1/traces?limit=100');
+    const r = await fetch(API + '/v1/traces?limit=100', { headers: authHeaders() });
     const d = await r.json();
     allTraces = d.traces || [];
     renderStats(); renderFilters(); renderTraceList();
@@ -255,7 +261,7 @@ async function loadTraces() {
 
 async function loadSources() {
   try {
-    const r = await fetch(API + '/v1/sources');
+    const r = await fetch(API + '/v1/sources', { headers: authHeaders() });
     const d = await r.json();
     allSources = d.sources || [];
   } catch {}
@@ -349,7 +355,7 @@ async function selectTrace(id) {
   const panel = document.getElementById('trace-detail');
   panel.innerHTML = '<div class="loading">Loading...</div>';
   try {
-    const r = await fetch(API + '/v1/traces/' + id);
+    const r = await fetch(API + '/v1/traces/' + id, { headers: authHeaders() });
     const trace = await r.json();
     renderTraceDetail(trace);
   } catch { panel.innerHTML = '<div class="detail-empty">Failed to load trace</div>'; }

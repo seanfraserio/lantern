@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import type { ITraceStore, TraceIngestRequest, TraceIngestResponse, TraceQueryFilter } from "@lantern-ai/sdk";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): void {
   // POST /v1/traces — ingest traces
   app.post<{ Body: TraceIngestRequest }>("/v1/traces", async (request, reply) => {
@@ -51,6 +53,9 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
 
   // GET /v1/traces/:id — get single trace
   app.get<{ Params: { id: string } }>("/v1/traces/:id", async (request, reply) => {
+    if (!UUID_RE.test(request.params.id)) {
+      return reply.status(400).send({ error: "Invalid trace ID format" });
+    }
     try {
       const trace = await store.getTrace(request.params.id);
       if (!trace) {
