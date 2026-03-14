@@ -10,3 +10,5 @@ dist/
 
 # Enterprise packages live in a separate private repo
 packages/enterprise/
+packages/api/
+infra/

@@ -1,0 +1,20 @@
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9 --activate
+WORKDIR /app
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/sdk/ packages/sdk/
+COPY packages/ingest/ packages/ingest/
+COPY packages/api/ packages/api/
+RUN pnpm install --frozen-lockfile --filter @lantern-ai/api...
+RUN pnpm --filter @lantern-ai/sdk run build
+RUN pnpm --filter @lantern-ai/ingest run build
+RUN pnpm --filter @lantern-ai/api run build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=base /app/packages/api/dist ./dist
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/packages/api/node_modules ./node_modules
+ENV PORT=8080
+EXPOSE 8080
+CMD ["node", "dist/cli.js"]
