@@ -164,7 +164,12 @@ export class LanternTracer {
     const toExport = [...this.buffer];
     this.buffer = [];
 
-    await this.exporter.export(toExport);
+    try {
+      await this.exporter.export(toExport);
+    } catch (error) {
+      this.buffer.unshift(...toExport);
+      throw error;
+    }
   }
 
   /**

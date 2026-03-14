@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import Fastify from "fastify";
 import { SqliteTraceStore } from "./store/sqlite.js";
 import { registerTraceRoutes } from "./routes/traces.js";
@@ -36,7 +37,12 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     app.addHook("onRequest", async (request, reply) => {
       if (!request.url.startsWith("/v1/")) return;
       const auth = request.headers.authorization;
-      if (!auth || auth !== `Bearer ${apiKey}`) {
+      if (!auth) {
+        return reply.status(401).send({ error: "Unauthorized" });
+      }
+      const expected = `Bearer ${apiKey}`;
+      if (auth.length !== expected.length ||
+          !timingSafeEqual(Buffer.from(auth), Buffer.from(expected))) {
         return reply.status(401).send({ error: "Unauthorized" });
       }
     });
@@ -54,7 +60,8 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
 }
 
 // Run directly
-const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, "/"));
+const isMain = process.argv[1] &&
+    new URL(import.meta.url).pathname === new URL(`file://${process.argv[1]}`).pathname;
 if (isMain) {
   createServer().catch((err) => {
     console.error("Failed to start Lantern ingest server:", err);

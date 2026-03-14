@@ -3,7 +3,6 @@ import type { ITraceExporter, Trace } from "../types.js";
 export interface LanternExporterConfig {
   endpoint: string;
   apiKey?: string;
-  batchSize?: number;
   maxRetries?: number;
   retryBaseDelayMs?: number;
 }

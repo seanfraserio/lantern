@@ -124,7 +124,7 @@ export class SqliteTraceStore implements ITraceStore {
     }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-    const limit = filter.limit ?? 100;
+    const limit = Math.min(filter.limit ?? 100, 1000);
     const offset = filter.offset ?? 0;
 
     const rows = this.db
