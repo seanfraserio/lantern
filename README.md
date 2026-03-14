@@ -93,7 +93,7 @@ See [docs/self-hosting.md](docs/self-hosting.md) for details.
 3. Run `pnpm build && pnpm test && pnpm typecheck` before submitting a PR
 4. Open a pull request against `main`
 
-See [CLAUDE.md](CLAUDE.md) for architecture and conventions.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for architecture and conventions.
 
 ## License
 
