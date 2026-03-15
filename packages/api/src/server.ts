@@ -87,7 +87,8 @@ export async function buildApiServer(config: ApiServerConfig) {
       "https://openlanternai-dashboard.pages.dev",
     ];
     const isLocalhost = origin !== undefined && /^http:\/\/localhost(:\d+)?$/.test(origin);
-    if (origin && (allowedOrigins.includes(origin) || isLocalhost)) {
+    const isPagesPreview = origin !== undefined && /^https:\/\/[a-z0-9]+\.openlanternai-dashboard\.pages\.dev$/.test(origin);
+    if (origin && (allowedOrigins.includes(origin) || isLocalhost || isPagesPreview)) {
       reply.header("Access-Control-Allow-Origin", origin);
       reply.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
       reply.header("Access-Control-Allow-Headers", "Authorization, Content-Type");
