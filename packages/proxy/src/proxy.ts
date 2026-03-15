@@ -76,6 +76,14 @@ function parseSSEChunks(provider: Provider, chunks: string[]) {
   return parseOpenAISSEChunks(chunks);
 }
 
+const STRIP_RESPONSE_HEADERS = new Set([
+  "x-api-key",
+  "x-ratelimit-limit-tokens",
+  "x-ratelimit-remaining-tokens",
+  "set-cookie",
+  "server",
+]);
+
 /**
  * Build upstream headers from the incoming request.
  * Strips all X-Lantern-* headers so they don't leak to the upstream API.
@@ -183,6 +191,8 @@ async function handleNonStreaming(
     // Skip hop-by-hop headers
     if (key.toLowerCase() === "transfer-encoding") continue;
     if (key.toLowerCase() === "connection") continue;
+    // Strip sensitive upstream headers
+    if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
     reply.header(key, value);
   }
 
@@ -264,6 +274,7 @@ async function handleStreaming(
     for (const [key, value] of upstreamResponse.headers.entries()) {
       if (key.toLowerCase() === "transfer-encoding") continue;
       if (key.toLowerCase() === "connection") continue;
+      if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
       reply.header(key, value);
     }
 
@@ -289,6 +300,7 @@ async function handleStreaming(
   for (const [key, value] of upstreamResponse.headers.entries()) {
     if (key.toLowerCase() === "transfer-encoding") continue;
     if (key.toLowerCase() === "connection") continue;
+    if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
     reply.header(key, value);
   }
 

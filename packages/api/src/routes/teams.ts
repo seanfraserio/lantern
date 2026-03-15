@@ -12,6 +12,7 @@ export function registerTeamRoutes(app: FastifyInstance, pool: pg.Pool): void {
 
     const { name, members } = request.body;
     if (!name) return reply.status(400).send({ error: "name is required" });
+    if (name.length > 100) return reply.status(400).send({ error: "Team name must be under 100 characters" });
 
     // Get creator's email to add them as a member
     const { rows: userRows } = await pool.query("SELECT email FROM public.users WHERE id = $1", [user.sub]);
