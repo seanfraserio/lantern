@@ -13,14 +13,40 @@ export function registerTeamRoutes(app: FastifyInstance, pool: pg.Pool): void {
     const { name, members } = request.body;
     if (!name) return reply.status(400).send({ error: "name is required" });
 
+    // Get creator's email to add them as a member
+    const { rows: userRows } = await pool.query("SELECT email FROM public.users WHERE id = $1", [user.sub]);
+    const creatorEmail = userRows[0]?.email as string;
+    const memberList = members ?? [];
+    if (creatorEmail && !memberList.includes(creatorEmail)) {
+      memberList.push(creatorEmail);
+    }
+
     try {
-      const { TeamManager } = await (Function('return import("@lantern-ai/enterprise")')() as Promise<Record<string, any>>);
-      const mgr = new TeamManager(pool);
-      await mgr.initialize();
-      const team = await mgr.createTeam(name, members ?? [], user.tenantId);
-      return reply.status(201).send(team);
-    } catch {
-      return reply.status(501).send({ error: "Team management not available" });
+      await pool.query(`CREATE TABLE IF NOT EXISTS public.teams (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id UUID NOT NULL, name TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS public.team_members (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), team_id UUID NOT NULL REFERENCES public.teams(id), user_email TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(team_id, user_email))`);
+
+      const { rows } = await pool.query(
+        `INSERT INTO public.teams (tenant_id, name) VALUES ($1, $2) RETURNING id, name, created_at`,
+        [user.tenantId, name]
+      );
+      const team = rows[0];
+
+      for (const email of memberList) {
+        await pool.query(
+          `INSERT INTO public.team_members (team_id, user_email) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [team.id, email]
+        );
+      }
+
+      return reply.status(201).send({
+        id: team.id,
+        name: team.name,
+        members: memberList,
+        agentScope: [],
+      });
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({ error: "Failed to create team" });
     }
   });
 
@@ -37,12 +63,17 @@ export function registerTeamRoutes(app: FastifyInstance, pool: pg.Pool): void {
     }
 
     try {
-      const { TeamManager } = await (Function('return import("@lantern-ai/enterprise")')() as Promise<Record<string, any>>);
-      const mgr = new TeamManager(pool);
-      await mgr.setScope(request.params.id, agentNames);
+      await pool.query(`CREATE TABLE IF NOT EXISTS public.team_scopes (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), team_id UUID NOT NULL REFERENCES public.teams(id), agent_name TEXT NOT NULL, UNIQUE(team_id, agent_name))`);
+      const { rows: teamRows } = await pool.query("SELECT id FROM public.teams WHERE id = $1 AND tenant_id = $2", [request.params.id, user.tenantId]);
+      if (teamRows.length === 0) return reply.status(404).send({ error: "Team not found" });
+      await pool.query("DELETE FROM public.team_scopes WHERE team_id = $1", [request.params.id]);
+      for (const agentName of agentNames) {
+        await pool.query(`INSERT INTO public.team_scopes (team_id, agent_name) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [request.params.id, agentName]);
+      }
       return reply.send({ updated: true });
-    } catch {
-      return reply.status(501).send({ error: "Team management not available" });
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({ error: "Failed to update team scope" });
     }
   });
 
@@ -51,12 +82,11 @@ export function registerTeamRoutes(app: FastifyInstance, pool: pg.Pool): void {
   async function ensureTables(): Promise<void> {
     if (tablesInitialized) return;
     try {
-      const { TeamManager } = await (Function('return import("@lantern-ai/enterprise")')() as Promise<Record<string, any>>);
-      const mgr = new TeamManager(pool);
-      await mgr.initialize();
+      await pool.query(`CREATE TABLE IF NOT EXISTS public.teams (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id UUID NOT NULL, name TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS public.team_members (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), team_id UUID NOT NULL REFERENCES public.teams(id), user_email TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(team_id, user_email))`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS public.team_scopes (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), team_id UUID NOT NULL REFERENCES public.teams(id), agent_name TEXT NOT NULL, UNIQUE(team_id, agent_name))`);
       tablesInitialized = true;
     } catch {
-      // Tables may already exist or enterprise package not available
       tablesInitialized = true;
     }
   }
