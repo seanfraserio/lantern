@@ -201,7 +201,6 @@
 function authHeaders() {
   const token = localStorage.getItem('lantern_token');
   return token ? { 'Authorization': 'Bearer ' + token } : {};
-} : {};
 }
 const API_URL = localStorage.getItem('lantern_api_url') || 'https://lantern-api-100029703606.us-central1.run.app';
 const API = API_URL;
