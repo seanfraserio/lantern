@@ -384,6 +384,26 @@
       <h3>Data Source Tracking</h3>
       <p>See which services, SDK versions, and exporters are sending traces. Filter by source, environment, or agent. Know exactly where your data comes from.</p>
     </div>
+    <div class="feature-card">
+      <div class="feature-icon green">&#127919;</div>
+      <h3>LLM Proxy</h3>
+      <p>Zero-code instrumentation. Point your agent's base URL at the Lantern proxy — every LLM call is traced automatically. Works with any language or framework.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon yellow">&#128187;</div>
+      <h3>Python &amp; TypeScript SDKs</h3>
+      <p>Native SDKs for both Python and TypeScript with auto-instrumentation for Anthropic and OpenAI. Three lines of code to full visibility.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon orange">&#128276;</div>
+      <h3>Alert Channels</h3>
+      <p>Configure Slack, PagerDuty, email, and webhook alert channels. Get notified when quality drops, costs spike, or agents regress. Test channels before going live.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon accent">&#128101;</div>
+      <h3>Team Management</h3>
+      <p>Create teams, invite members, assign roles. Scope agent visibility per team so each group sees only what they need. Full RBAC with owner, admin, and member roles.</p>
+    </div>
   </div>
 </section>
 
@@ -395,18 +415,18 @@
 
   <div class="how-steps">
     <div class="how-step">
-      <h3>Install the SDK</h3>
-      <p>One package. Works with Node.js 20+. TypeScript-first with full type safety.</p>
-      <br />
-      <code>npm install @lantern-ai/sdk</code>
+      <h3>Choose your method</h3>
+      <p><strong>TypeScript:</strong> <code>npm install @lantern-ai/sdk</code><br/>
+         <strong>Python:</strong> <code>pip install lantern-ai</code><br/>
+         <strong>Any language:</strong> Point at the LLM Proxy — zero code changes</p>
     </div>
     <div class="how-step">
-      <h3>Wrap your AI client</h3>
-      <p>Call <code>wrapAnthropicClient()</code> or <code>wrapOpenAIClient()</code>. All API calls are now traced automatically with full input/output capture.</p>
+      <h3>Instrument your agent</h3>
+      <p>Wrap your Anthropic or OpenAI client with one function call, or set <code>ANTHROPIC_BASE_URL</code> to the proxy. Every LLM call is traced automatically.</p>
     </div>
     <div class="how-step">
       <h3>View in dashboard</h3>
-      <p>Traces flow to the Lantern dashboard in real time. Click through reasoning chains, inspect spans, and track quality metrics from day one.</p>
+      <p>Traces flow to the Lantern dashboard in real time. Click through reasoning chains, inspect spans, set SLA targets, and track quality metrics from day one.</p>
     </div>
   </div>
 </section>
@@ -447,10 +467,12 @@
         <li><span class="check">&#10003;</span> PII detection + auto-redaction</li>
         <li><span class="check">&#10003;</span> Slack + webhook alerting</li>
         <li><span class="check">&#10003;</span> Team-scoped RBAC</li>
+        <li><span class="check">&#10003;</span> Cost forecasting + budgets</li>
+        <li><span class="check">&#10003;</span> Google + GitHub OAuth</li>
         <li><span class="check">&#10003;</span> 90-day trace retention</li>
         <li><span class="check">&#10003;</span> Email support</li>
       </ul>
-      <a href="https://openlanternai-dashboard.pages.dev" class="btn btn-primary pricing-btn">Start Free Trial</a>
+      <a href="https://dashboard.openlanternai.com" class="btn btn-primary pricing-btn">Start Free Trial</a>
     </div>
     <div class="pricing-card">
       <div class="pricing-name">Team+</div>
@@ -473,11 +495,12 @@
       <div class="pricing-period">Unlimited traces</div>
       <ul class="pricing-features">
         <li><span class="check">&#10003;</span> Everything in Team+</li>
-        <li><span class="check">&#10003;</span> SOC2 / HIPAA audit export</li>
+        <li><span class="check">&#10003;</span> SOC2 / HIPAA / GDPR audit export</li>
         <li><span class="check">&#10003;</span> PagerDuty integration</li>
-        <li><span class="check">&#10003;</span> SSO / SAML</li>
+        <li><span class="check">&#10003;</span> SSO / SAML (Okta, Azure AD)</li>
+        <li><span class="check">&#10003;</span> Magic Link email auth</li>
         <li><span class="check">&#10003;</span> Custom trace retention</li>
-        <li><span class="check">&#10003;</span> Dedicated ingest endpoint</li>
+        <li><span class="check">&#10003;</span> LLM Proxy (zero-code tracing)</li>
         <li><span class="check">&#10003;</span> Dedicated support + SLA</li>
       </ul>
       <a href="mailto:sales@openlanternai.com" class="btn btn-outline pricing-btn">Contact Sales</a>
@@ -497,18 +520,25 @@
       <tbody>
         <tr><td>Monthly trace limit</td><td>Unlimited (self-hosted)</td><td>1M</td><td>5M</td><td>Unlimited</td></tr>
         <tr><td>Agents</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td></tr>
-        <tr><td>Trace capture SDK</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>TypeScript SDK</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Python SDK</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
         <tr><td>Auto-instrumentation (Anthropic, OpenAI)</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
         <tr><td>Dashboard (traces, metrics, sources)</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
         <tr><td>Custom evaluation scorers</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
         <tr><td>Self-hosted deployment</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
         <tr><td>Managed cloud ingest</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
         <tr><td>PII detection + redaction</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>Alerting (Slack, webhooks)</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Alerting (Slack, PagerDuty, webhooks)</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
         <tr><td>Team-scoped RBAC</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>SOC2 / HIPAA audit export</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>PagerDuty integration</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>SSO / SAML</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Cost forecasting + budgets</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Google + GitHub OAuth</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Quality scorecards + SLA</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Regression detection</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>SOC2 / HIPAA / GDPR audit export</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>SSO / SAML (Okta, Azure AD)</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Magic Link email auth</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Custom trace retention</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>LLM Proxy (zero-code tracing)</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
         <tr><td>Dedicated support + SLA</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
       </tbody>
     </table>
@@ -522,7 +552,7 @@
     <h2>Stop guessing what your agents are doing</h2>
     <p>Deploy Lantern in under a minute. Self-host for free or start a managed cloud trial.</p>
     <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-      <a href="mailto:sales@openlanternai.com" class="btn btn-primary btn-lg">Start Free Trial</a>
+      <a href="https://dashboard.openlanternai.com" class="btn btn-primary btn-lg">Start Free Trial</a>
       <a href="https://github.com/seanfraserio/lantern" class="btn btn-outline btn-lg" target="_blank">View Source on GitHub</a>
     </div>
   </div>
@@ -544,8 +574,9 @@
     <div class="footer-col">
       <h4>Developers</h4>
       <a href="https://github.com/seanfraserio/lantern" target="_blank">GitHub</a>
-      <a href="https://github.com/seanfraserio/lantern/tree/main/docs/sdk-reference.md" target="_blank">SDK Reference</a>
-      <a href="https://github.com/seanfraserio/lantern/tree/main/docs/self-hosting.md" target="_blank">Self-Hosting</a>
+      <a href="https://github.com/seanfraserio/lantern/tree/main/docs/reference" target="_blank">SDK Reference</a>
+      <a href="https://github.com/seanfraserio/lantern/tree/main/docs/tutorials/self-hosting.md" target="_blank">Self-Hosting</a>
+      <a href="https://github.com/seanfraserio/lantern/tree/main/sdk-python" target="_blank">Python SDK</a>
       <a href="https://github.com/seanfraserio/lantern/blob/main/CONTRIBUTING.md" target="_blank">Contributing</a>
     </div>
     <div class="footer-col">
