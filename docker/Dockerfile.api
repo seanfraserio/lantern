@@ -5,17 +5,19 @@ WORKDIR /app
 # Copy workspace config and root tsconfig
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 
-# Copy all packages needed for api (sdk -> ingest -> api)
+# Copy all packages needed for api (sdk -> ingest -> api -> enterprise)
 COPY packages/sdk/ packages/sdk/
 COPY packages/ingest/ packages/ingest/
 COPY packages/api/ packages/api/
+COPY packages/enterprise/ packages/enterprise/
 
 # Install with shamefully-hoist for flat node_modules
-RUN pnpm install --frozen-lockfile --filter @lantern-ai/api... --shamefully-hoist
+RUN pnpm install --frozen-lockfile --filter @lantern-ai/api... --filter @lantern-ai/enterprise... --shamefully-hoist
 
 # Build in dependency order
 RUN pnpm --filter @lantern-ai/sdk run build
 RUN pnpm --filter @lantern-ai/ingest run build
+RUN pnpm --filter @lantern-ai/enterprise run build
 RUN pnpm --filter @lantern-ai/api run build
 
 # Production image
@@ -25,6 +27,7 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/packages/sdk ./packages/sdk
 COPY --from=base /app/packages/ingest ./packages/ingest
 COPY --from=base /app/packages/api ./packages/api
+COPY --from=base /app/packages/enterprise ./packages/enterprise
 
 ENV PORT=8080
 EXPOSE 8080
