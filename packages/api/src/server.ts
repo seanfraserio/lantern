@@ -75,7 +75,6 @@ export async function buildApiServer(config: ApiServerConfig) {
     reply.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
     reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
     reply.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-    reply.header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'");
   });
 
   // CORS for dashboard SPA
