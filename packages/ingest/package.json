@@ -19,7 +19,7 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
-    "@fastify/compress": "^8.3.1",
+    "@fastify/compress": "^7.0.3",
     "@lantern-ai/sdk": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "fastify": "^4.26.0",
