@@ -72,6 +72,39 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     // Store cache: reuse PostgresTraceStore instances per tenant
     const storeCache = new Map<string, ITraceStore>();
 
+    // Usage limit cache: { tenantId -> { count, checkedAt } }
+    const PLAN_LIMITS: Record<string, number> = {
+      free: 10_000,
+      team: 1_000_000,
+      enterprise: 999_999_999, // effectively unlimited
+    };
+    const usageCache = new Map<string, { count: number; plan: string; checkedAt: number }>();
+
+    async function checkUsageLimit(tenantId: string): Promise<{ allowed: boolean; plan: string; count: number; limit: number }> {
+      const cached = usageCache.get(tenantId);
+      // Re-check every 60 seconds
+      if (cached && Date.now() - cached.checkedAt < 60_000) {
+        const limit = PLAN_LIMITS[cached.plan] ?? PLAN_LIMITS.free;
+        return { allowed: cached.count < limit, plan: cached.plan, count: cached.count, limit };
+      }
+
+      const month = new Date().toISOString().slice(0, 7);
+      const { rows } = await pool.query(
+        `SELECT t.plan, COALESCE(u.trace_count, 0)::int AS trace_count
+         FROM public.tenants t
+         LEFT JOIN public.usage u ON u.tenant_id = t.id AND u.month = $2
+         WHERE t.id = $1`,
+        [tenantId, month]
+      );
+
+      const plan = (rows[0]?.plan as string) ?? "free";
+      const count = (rows[0]?.trace_count as number) ?? 0;
+      const limit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+
+      usageCache.set(tenantId, { count, plan, checkedAt: Date.now() });
+      return { allowed: count < limit, plan, count, limit };
+    }
+
     app.addHook("onRequest", async (request, reply) => {
       if (!request.url.startsWith("/v1/")) return;
 
@@ -84,6 +117,20 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
       const tenant = await resolver.resolve(key);
       if (!tenant) {
         return reply.status(401).send({ error: "Invalid API key" });
+      }
+
+      // Check usage limit on POST (trace ingestion)
+      if (request.method === "POST") {
+        const usage = await checkUsageLimit(tenant.tenantId);
+        if (!usage.allowed) {
+          return reply.status(429).send({
+            error: "Trace limit exceeded",
+            plan: usage.plan,
+            used: usage.count,
+            limit: usage.limit,
+            message: `Your ${usage.plan} plan allows ${usage.limit.toLocaleString()} traces/month. Upgrade at https://openlanternai-dashboard.pages.dev`,
+          });
+        }
       }
 
       // Get or create a store for this tenant

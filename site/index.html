@@ -156,8 +156,9 @@
   .how-step code { font-family: var(--mono); font-size: 13px; background: var(--surface2); padding: 2px 8px; border-radius: 4px; color: var(--accent-light); }
 
   /* ── Pricing ── */
-  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  @media (max-width: 900px) { .pricing-grid { grid-template-columns: 1fr; } }
+  .pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 1100px) { .pricing-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .pricing-grid { grid-template-columns: 1fr; } }
   .pricing-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 36px; display: flex; flex-direction: column; }
   .pricing-card.featured { border-color: var(--accent); box-shadow: 0 0 40px rgba(79,70,229,0.08); position: relative; }
   .pricing-popular { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -176,8 +177,8 @@
   .comp-table { width: 100%; border-collapse: collapse; min-width: 600px; }
   .comp-table th, .comp-table td { padding: 14px 20px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
   .comp-table th { color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-  .comp-table td:nth-child(2), .comp-table td:nth-child(3), .comp-table td:nth-child(4) { text-align: center; }
-  .comp-table th:nth-child(2), .comp-table th:nth-child(3), .comp-table th:nth-child(4) { text-align: center; }
+  .comp-table td:nth-child(2), .comp-table td:nth-child(3), .comp-table td:nth-child(4), .comp-table td:nth-child(5) { text-align: center; }
+  .comp-table th:nth-child(2), .comp-table th:nth-child(3), .comp-table th:nth-child(4), .comp-table th:nth-child(5) { text-align: center; }
   .comp-check { color: var(--green); font-size: 18px; }
   .comp-dash { color: var(--text-muted); }
 
@@ -417,9 +418,9 @@
         <li><span class="check">&#10003;</span> Full trace capture (SDK)</li>
         <li><span class="check">&#10003;</span> SQLite + Postgres storage</li>
         <li><span class="check">&#10003;</span> Dashboard (traces, metrics, sources)</li>
-        <li><span class="check">&#10003;</span> Latency + cost scorers</li>
         <li><span class="check">&#10003;</span> Custom eval scorers</li>
-        <li><span class="check">&#10003;</span> Unlimited agents and traces</li>
+        <li><span class="check">&#10003;</span> Unlimited agents</li>
+        <li><span class="check">&#10003;</span> Unlimited traces (self-hosted)</li>
         <li><span class="check">&#10003;</span> Community support</li>
       </ul>
       <a href="https://github.com/seanfraserio/lantern" class="btn btn-outline pricing-btn" target="_blank">View on GitHub</a>
@@ -432,14 +433,29 @@
       <div class="pricing-period">Up to 1M traces/month</div>
       <ul class="pricing-features">
         <li><span class="check">&#10003;</span> Everything in Community</li>
-        <li><span class="check">&#10003;</span> Managed cloud ingest (99.9% SLA)</li>
+        <li><span class="check">&#10003;</span> Managed cloud ingest</li>
+        <li><span class="check">&#10003;</span> Unlimited agents</li>
         <li><span class="check">&#10003;</span> PII detection + auto-redaction</li>
         <li><span class="check">&#10003;</span> Slack + webhook alerting</li>
         <li><span class="check">&#10003;</span> Team-scoped RBAC</li>
         <li><span class="check">&#10003;</span> 90-day trace retention</li>
         <li><span class="check">&#10003;</span> Email support</li>
       </ul>
-      <a href="mailto:enterprise@lantern-ai.dev" class="btn btn-primary pricing-btn">Start Free Trial</a>
+      <a href="https://openlanternai-dashboard.pages.dev" class="btn btn-primary pricing-btn">Start Free Trial</a>
+    </div>
+    <div class="pricing-card">
+      <div class="pricing-name">Team+</div>
+      <div class="pricing-desc">For high-volume agent workloads</div>
+      <div class="pricing-price">$599 <span>/ month</span></div>
+      <div class="pricing-period">Up to 5M traces/month</div>
+      <ul class="pricing-features">
+        <li><span class="check">&#10003;</span> Everything in Team</li>
+        <li><span class="check">&#10003;</span> 5x trace volume</li>
+        <li><span class="check">&#10003;</span> Unlimited agents</li>
+        <li><span class="check">&#10003;</span> 90-day trace retention</li>
+        <li><span class="check">&#10003;</span> Priority email support</li>
+      </ul>
+      <a href="mailto:enterprise@lantern-ai.dev" class="btn btn-outline pricing-btn">Contact Sales</a>
     </div>
     <div class="pricing-card">
       <div class="pricing-name">Enterprise</div>
@@ -447,7 +463,7 @@
       <div class="pricing-price">Custom</div>
       <div class="pricing-period">Unlimited traces</div>
       <ul class="pricing-features">
-        <li><span class="check">&#10003;</span> Everything in Team</li>
+        <li><span class="check">&#10003;</span> Everything in Team+</li>
         <li><span class="check">&#10003;</span> SOC2 / HIPAA audit export</li>
         <li><span class="check">&#10003;</span> PagerDuty integration</li>
         <li><span class="check">&#10003;</span> SSO / SAML</li>
@@ -468,21 +484,23 @@
 
   <div class="table-wrap">
     <table class="comp-table">
-      <thead><tr><th>Feature</th><th>Community</th><th>Team</th><th>Enterprise</th></tr></thead>
+      <thead><tr><th>Feature</th><th>Community</th><th>Team</th><th>Team+</th><th>Enterprise</th></tr></thead>
       <tbody>
-        <tr><td>Trace capture SDK</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>Auto-instrumentation (Anthropic, OpenAI)</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>Dashboard (traces, metrics, sources)</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>Custom evaluation scorers</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>Self-hosted deployment</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>Managed cloud ingest</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>PII detection + redaction</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>Alerting (Slack, webhooks)</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>Team-scoped RBAC</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>SOC2 / HIPAA audit export</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>PagerDuty integration</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>SSO / SAML</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
-        <tr><td>Dedicated support + SLA</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Monthly trace limit</td><td>Unlimited (self-hosted)</td><td>1M</td><td>5M</td><td>Unlimited</td></tr>
+        <tr><td>Agents</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td></tr>
+        <tr><td>Trace capture SDK</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Auto-instrumentation (Anthropic, OpenAI)</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Dashboard (traces, metrics, sources)</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Custom evaluation scorers</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Self-hosted deployment</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Managed cloud ingest</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>PII detection + redaction</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Alerting (Slack, webhooks)</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Team-scoped RBAC</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>SOC2 / HIPAA audit export</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>PagerDuty integration</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>SSO / SAML</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
+        <tr><td>Dedicated support + SLA</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-dash">&#x2014;</td><td class="comp-check">&#10003;</td></tr>
       </tbody>
     </table>
   </div>
