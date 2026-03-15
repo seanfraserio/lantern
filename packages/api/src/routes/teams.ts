@@ -91,6 +91,44 @@ export function registerTeamRoutes(app: FastifyInstance, pool: pg.Pool): void {
     }
   }
 
+  // GET /teams/my — get current user's teams (must be registered before /teams/:id)
+  app.get("/teams/my", async (request, reply) => {
+    const user = getUser(request);
+    const { rows: userRows } = await pool.query("SELECT email FROM public.users WHERE id = $1", [user.sub]);
+    if (userRows.length === 0) return reply.status(404).send({ error: "User not found" });
+    const email = userRows[0].email as string;
+
+    const { rows: memberTeams } = await pool.query(
+      `SELECT DISTINCT t.id, t.name, t.created_at,
+         (SELECT COUNT(*)::int FROM public.team_members tm WHERE tm.team_id = t.id) AS member_count
+       FROM public.teams t
+       JOIN public.team_members tm ON tm.team_id = t.id
+       WHERE t.tenant_id = $1 AND tm.user_email = $2
+       ORDER BY t.created_at DESC`,
+      [user.tenantId, email]
+    );
+
+    if (memberTeams.length > 0) {
+      return reply.send({ teams: memberTeams.map(t => ({
+        id: t.id, name: t.name, memberCount: t.member_count, createdAt: (t.created_at as Date).toISOString()
+      })) });
+    }
+
+    if (user.role === "owner" || user.role === "admin") {
+      const { rows: allTeams } = await pool.query(
+        `SELECT t.id, t.name, t.created_at,
+           (SELECT COUNT(*)::int FROM public.team_members tm WHERE tm.team_id = t.id) AS member_count
+         FROM public.teams t WHERE t.tenant_id = $1 ORDER BY t.created_at DESC`,
+        [user.tenantId]
+      );
+      return reply.send({ teams: allTeams.map(t => ({
+        id: t.id, name: t.name, memberCount: t.member_count, createdAt: (t.created_at as Date).toISOString()
+      })) });
+    }
+
+    return reply.send({ teams: [] });
+  });
+
   // GET /teams — list teams for tenant
   app.get("/teams", async (request, reply) => {
     const user = getUser(request);
