@@ -15,6 +15,7 @@ import { registerScorecardRoutes, initSlaTargetsTable } from "./routes/scorecard
 import { registerRegressionRoutes } from "./routes/regressions.js";
 import { registerCostRoutes } from "./routes/costs.js";
 import { registerHealthRoutes } from "./routes/health.js";
+import { registerObservability } from "./lib/observability.js";
 
 const { Pool } = pg;
 
@@ -49,6 +50,9 @@ export async function buildApiServer(config: ApiServerConfig) {
   await initSlaTargetsTable(pool);
 
   const app = Fastify({ logger: true, bodyLimit: 1_048_576 });
+
+  // Observability: send metrics + logs to Grafana Cloud via OTLP
+  registerObservability(app, "lantern-api");
 
   // Store raw body for Stripe webhook signature verification
   app.addContentTypeParser(

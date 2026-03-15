@@ -20,3 +20,4 @@ export { registerComplianceRoutes } from "./routes/compliance.js";
 export { registerScorecardRoutes, initSlaTargetsTable } from "./routes/scorecards.js";
 export { registerRegressionRoutes } from "./routes/regressions.js";
 export { registerCostRoutes } from "./routes/costs.js";
+export { registerObservability, recordMetric, recordEvent } from "./lib/observability.js";

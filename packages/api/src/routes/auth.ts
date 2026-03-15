@@ -4,6 +4,7 @@ import type { SchemaManager } from "../store/schema-manager.js";
 import { hashPassword, verifyPassword } from "../lib/passwords.js";
 import { generateApiKey, hashApiKey } from "../lib/api-key-gen.js";
 import { signJwt } from "../middleware/jwt.js";
+import { recordMetric } from "../lib/observability.js";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -112,6 +113,7 @@ export function registerAuthRoutes(
 
       const user = await store.getUserByEmail(email);
       if (!user || !(await verifyPassword(password, user.passwordHash))) {
+        recordMetric("auth_login_failed_total", 1, {});
         return reply.status(401).send({ error: "Invalid credentials" });
       }
 
@@ -120,6 +122,7 @@ export function registerAuthRoutes(
         return reply.status(500).send({ error: "Internal server error" });
       }
 
+      recordMetric("auth_login_total", 1, {});
       const token = signJwt(
         { sub: user.id, tenantId: tenant.id, tenantSlug: tenant.slug, role: user.role },
         jwtSecret

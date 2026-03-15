@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { ITraceStore, TraceIngestRequest, TraceIngestResponse, TraceQueryFilter } from "@lantern-ai/sdk";
+import { recordMetric } from "../lib/observability.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_TRACES_PER_REQUEST = 100;
@@ -67,6 +68,23 @@ export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceSt
     try {
       const store = getStore(request, defaultStore);
       await store.insert(traces);
+
+      // Business metrics: trace ingestion volume
+      const tenantSlug = (request as unknown as Record<string, unknown>).tenantSlug as string | undefined;
+      recordMetric("traces_ingested_total", traces.length, { tenant: tenantSlug ?? "single" });
+
+      // Sum tokens across all traces if available
+      let totalTokens = 0;
+      for (const trace of traces) {
+        const t = trace as unknown as Record<string, unknown>;
+        if (typeof t.totalTokens === "number") totalTokens += t.totalTokens;
+        else if (typeof t.inputTokens === "number" && typeof t.outputTokens === "number")
+          totalTokens += (t.inputTokens as number) + (t.outputTokens as number);
+      }
+      if (totalTokens > 0) {
+        recordMetric("traces_ingested_tokens", totalTokens, { tenant: tenantSlug ?? "single" });
+      }
+
       return reply.status(200).send({
         accepted: traces.length,
       } satisfies TraceIngestResponse);

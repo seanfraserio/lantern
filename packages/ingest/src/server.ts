@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { registerTraceRoutes } from "./routes/traces.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerDashboardRoutes } from "./routes/dashboard.js";
+import { registerObservability, recordMetric } from "./lib/observability.js";
 import type { ITraceStore } from "@lantern-ai/sdk";
 
 export interface IngestServerConfig {
@@ -54,6 +55,9 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     logger: true,
     bodyLimit: 1_048_576,
   });
+
+  // Observability: send metrics + logs to Grafana Cloud via OTLP
+  registerObservability(app, "lantern-ingest");
 
   // Security headers
   app.addHook("onSend", async (_request, reply) => {
@@ -126,6 +130,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
       if (request.method === "POST") {
         const usage = await checkUsageLimit(tenant.tenantId);
         if (!usage.allowed) {
+          recordMetric("trace_limit_exceeded_total", 1, { tenant: tenant.tenantSlug, plan: usage.plan });
           return reply.status(429).send({
             error: "Trace limit exceeded",
             plan: usage.plan,
