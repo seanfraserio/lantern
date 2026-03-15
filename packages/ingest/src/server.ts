@@ -1,6 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
 import Fastify from "fastify";
-import { SqliteTraceStore } from "./store/sqlite.js";
 import { registerTraceRoutes } from "./routes/traces.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerDashboardRoutes } from "./routes/dashboard.js";
@@ -12,13 +11,31 @@ export interface IngestServerConfig {
   store?: ITraceStore;
   dbPath?: string;
   apiKey?: string;
+  databaseUrl?: string;
+}
+
+async function resolveStore(config?: Partial<IngestServerConfig>): Promise<ITraceStore> {
+  if (config?.store) return config.store;
+
+  const storeType = process.env.STORE_TYPE ?? "sqlite";
+  if (storeType === "postgres" || config?.databaseUrl) {
+    const { PostgresTraceStore } = await import("./store/postgres.js");
+    const url = config?.databaseUrl ?? process.env.DATABASE_URL ?? "";
+    const schema = process.env.TENANT_SCHEMA ?? "public";
+    const store = new PostgresTraceStore({ connectionString: url, tenantSchema: schema });
+    await store.initialize();
+    return store;
+  }
+
+  const { SqliteTraceStore } = await import("./store/sqlite.js");
+  return new SqliteTraceStore(config?.dbPath ?? "lantern.db");
 }
 
 export async function createServer(config?: Partial<IngestServerConfig>) {
   const port = config?.port ?? parseInt(process.env.PORT ?? "4100", 10);
   const host = config?.host ?? "127.0.0.1";
 
-  const store = config?.store ?? new SqliteTraceStore(config?.dbPath ?? "lantern.db");
+  const store = await resolveStore(config);
   const apiKey = config?.apiKey ?? process.env.LANTERN_API_KEY;
 
   const app = Fastify({
