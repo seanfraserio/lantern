@@ -19,6 +19,7 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
+    "@fastify/compress": "^8.3.1",
     "@lantern-ai/ingest": "workspace:*",
     "@lantern-ai/sdk": "workspace:*",
     "bcryptjs": "^3.0.3",

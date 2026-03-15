@@ -1,4 +1,6 @@
 import Fastify from "fastify";
+import compress from "@fastify/compress";
+import { randomUUID } from "node:crypto";
 import { registerTraceRoutes } from "./routes/traces.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerDashboardRoutes } from "./routes/dashboard.js";
@@ -54,13 +56,17 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   const app = Fastify({
     logger: true,
     bodyLimit: 1_048_576,
+    genReqId: (req) => (req.headers["x-request-id"] as string) ?? randomUUID(),
   });
+
+  await app.register(compress, { global: true });
 
   // Observability: send metrics + logs to Grafana Cloud via OTLP
   registerObservability(app, "lantern-ingest");
 
-  // Security headers
-  app.addHook("onSend", async (_request, reply) => {
+  // Security headers + request ID propagation
+  app.addHook("onSend", async (request, reply) => {
+    reply.header("X-Request-Id", request.id);
     reply.header("X-Content-Type-Options", "nosniff");
     reply.header("X-Frame-Options", "DENY");
     reply.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");

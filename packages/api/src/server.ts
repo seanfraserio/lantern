@@ -1,5 +1,7 @@
 import Fastify from "fastify";
+import compress from "@fastify/compress";
 import pg from "pg";
+import { randomUUID } from "node:crypto";
 import { TenantStore } from "./store/tenant-store.js";
 import { SchemaManager } from "./store/schema-manager.js";
 import { registerJwtAuth } from "./middleware/jwt.js";
@@ -49,7 +51,13 @@ export async function buildApiServer(config: ApiServerConfig) {
   await tenantStore.initialize();
   await initSlaTargetsTable(pool);
 
-  const app = Fastify({ logger: true, bodyLimit: 1_048_576 });
+  const app = Fastify({
+    logger: true,
+    bodyLimit: 1_048_576,
+    genReqId: (req) => (req.headers["x-request-id"] as string) ?? randomUUID(),
+  });
+
+  await app.register(compress, { global: true });
 
   // Observability: send metrics + logs to Grafana Cloud via OTLP
   registerObservability(app, "lantern-api");
@@ -68,8 +76,9 @@ export async function buildApiServer(config: ApiServerConfig) {
     }
   );
 
-  // Security headers
-  app.addHook("onSend", async (_request, reply) => {
+  // Security headers + request ID propagation
+  app.addHook("onSend", async (request, reply) => {
+    reply.header("X-Request-Id", request.id);
     reply.header("X-Content-Type-Options", "nosniff");
     reply.header("X-Frame-Options", "DENY");
     reply.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");

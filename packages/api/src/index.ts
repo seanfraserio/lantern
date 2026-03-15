@@ -21,3 +21,4 @@ export { registerScorecardRoutes, initSlaTargetsTable } from "./routes/scorecard
 export { registerRegressionRoutes } from "./routes/regressions.js";
 export { registerCostRoutes } from "./routes/costs.js";
 export { registerObservability, recordMetric, recordEvent } from "./lib/observability.js";
+export { sendEmail, magicLinkEmail, passwordResetEmail, teamInviteEmail } from "./lib/email.js";
