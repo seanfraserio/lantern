@@ -6,7 +6,8 @@ export function registerDashboardRoutes(app: FastifyInstance, apiKey?: string): 
     const remoteAddr = request.ip;
     const isLocal = remoteAddr === "127.0.0.1" || remoteAddr === "::1" || remoteAddr === "::ffff:127.0.0.1";
     const injectKey = apiKey && isLocal;
-    const html = DASHBOARD_HTML.replace('/*__API_KEY_INJECT__*/', injectKey ? `window.__LANTERN_API_KEY__ = ${JSON.stringify(apiKey)};` : '');
+    const safeKey = injectKey ? JSON.stringify(apiKey).replace(/</g, "\\u003c").replace(/>/g, "\\u003e") : null;
+    const html = DASHBOARD_HTML.replace('/*__API_KEY_INJECT__*/', safeKey ? `window.__LANTERN_API_KEY__ = ${safeKey};` : '');
     return reply.type("text/html").send(html);
   });
 }

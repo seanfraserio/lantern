@@ -23,6 +23,7 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/packages/sdk ./packages/sdk
 COPY --from=base /app/packages/ingest ./packages/ingest
 
+USER node
 ENV PORT=8080
 EXPOSE 8080
 CMD ["node", "packages/ingest/dist/cli.js"]

@@ -2,6 +2,30 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { ITraceStore, TraceIngestRequest, TraceIngestResponse, TraceQueryFilter } from "@lantern-ai/sdk";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_TRACES_PER_REQUEST = 100;
+const MAX_STRING_LENGTH = 100_000;
+const VALID_STATUSES = new Set(["success", "error", "running"]);
+
+interface TraceInput {
+  id?: unknown;
+  sessionId?: unknown;
+  agentName?: unknown;
+  environment?: unknown;
+  status?: unknown;
+  startTime?: unknown;
+  [key: string]: unknown;
+}
+
+function validateTrace(trace: TraceInput, index: number): string | null {
+  if (!trace || typeof trace !== "object") return `traces[${index}]: must be an object`;
+  if (typeof trace.id !== "string" || !UUID_RE.test(trace.id)) return `traces[${index}].id: must be a valid UUID`;
+  if (typeof trace.sessionId !== "string" || !UUID_RE.test(trace.sessionId)) return `traces[${index}].sessionId: must be a valid UUID`;
+  if (typeof trace.agentName !== "string" || trace.agentName.length === 0 || trace.agentName.length > 255) return `traces[${index}].agentName: must be 1-255 chars`;
+  if (typeof trace.environment !== "string" || trace.environment.length === 0 || trace.environment.length > 64) return `traces[${index}].environment: must be 1-64 chars`;
+  if (typeof trace.status !== "string" || !VALID_STATUSES.has(trace.status)) return `traces[${index}].status: must be success, error, or running`;
+  if (typeof trace.startTime !== "number" || !Number.isFinite(trace.startTime)) return `traces[${index}].startTime: must be a number`;
+  return null;
+}
 
 /**
  * Get the store for this request.
@@ -22,6 +46,22 @@ export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceSt
         accepted: 0,
         errors: ["Request body must contain a non-empty 'traces' array"],
       } satisfies TraceIngestResponse);
+    }
+
+    if (traces.length > MAX_TRACES_PER_REQUEST) {
+      return reply.status(400).send({
+        accepted: 0,
+        errors: [`Maximum ${MAX_TRACES_PER_REQUEST} traces per request`],
+      } satisfies TraceIngestResponse);
+    }
+
+    const errors: string[] = [];
+    for (let i = 0; i < traces.length; i++) {
+      const err = validateTrace(traces[i] as unknown as TraceInput, i);
+      if (err) errors.push(err);
+    }
+    if (errors.length > 0) {
+      return reply.status(400).send({ accepted: 0, errors } satisfies TraceIngestResponse);
     }
 
     try {

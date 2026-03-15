@@ -29,6 +29,7 @@ COPY --from=base /app/packages/ingest ./packages/ingest
 COPY --from=base /app/packages/api ./packages/api
 COPY --from=base /app/packages/enterprise ./packages/enterprise
 
+USER node
 ENV PORT=8080
 EXPOSE 8080
 CMD ["node", "packages/api/dist/cli.js"]
