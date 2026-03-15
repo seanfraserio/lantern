@@ -77,9 +77,8 @@ export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceSt
       let totalTokens = 0;
       for (const trace of traces) {
         const t = trace as unknown as Record<string, unknown>;
-        if (typeof t.totalTokens === "number") totalTokens += t.totalTokens;
-        else if (typeof t.inputTokens === "number" && typeof t.outputTokens === "number")
-          totalTokens += (t.inputTokens as number) + (t.outputTokens as number);
+        if (typeof t.totalInputTokens === "number") totalTokens += t.totalInputTokens as number;
+        if (typeof t.totalOutputTokens === "number") totalTokens += t.totalOutputTokens as number;
       }
       if (totalTokens > 0) {
         recordMetric("traces_ingested_tokens", totalTokens, { tenant: tenantSlug ?? "single" });
