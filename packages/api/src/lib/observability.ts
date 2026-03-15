@@ -288,6 +288,9 @@ export function registerObservability(
         },
         timestamp: now,
       });
+
+      // Flush after each request — Cloud Run idle CPU prevents timer-based flushing
+      buffer.flush().catch(() => {});
     },
   );
 
