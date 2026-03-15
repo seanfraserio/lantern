@@ -1,9 +1,18 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { ITraceStore, TraceIngestRequest, TraceIngestResponse, TraceQueryFilter } from "@lantern-ai/sdk";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): void {
+/**
+ * Get the store for this request.
+ * In multi-tenant mode, the tenant middleware attaches a per-tenant store.
+ * In single-tenant mode, fall back to the default store.
+ */
+function getStore(request: FastifyRequest, defaultStore: ITraceStore): ITraceStore {
+  return ((request as unknown as Record<string, unknown>).tenantStore as ITraceStore) ?? defaultStore;
+}
+
+export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceStore, multiTenant?: boolean): void {
   // POST /v1/traces — ingest traces
   app.post<{ Body: TraceIngestRequest }>("/v1/traces", async (request, reply) => {
     const { traces } = request.body;
@@ -16,6 +25,7 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
     }
 
     try {
+      const store = getStore(request, defaultStore);
       await store.insert(traces);
       return reply.status(200).send({
         accepted: traces.length,
@@ -32,6 +42,7 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
   // GET /v1/traces — query traces
   app.get<{ Querystring: TraceQueryFilter }>("/v1/traces", async (request, reply) => {
     try {
+      const store = getStore(request, defaultStore);
       const traces = await store.queryTraces(request.query);
       return reply.status(200).send({ traces });
     } catch (error) {
@@ -43,6 +54,7 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
   // GET /v1/sources — list connected data sources
   app.get("/v1/sources", async (request, reply) => {
     try {
+      const store = getStore(request, defaultStore);
       const sources = await store.getSources();
       return reply.status(200).send({ sources });
     } catch (error) {
@@ -57,6 +69,7 @@ export function registerTraceRoutes(app: FastifyInstance, store: ITraceStore): v
       return reply.status(400).send({ error: "Invalid trace ID format" });
     }
     try {
+      const store = getStore(request, defaultStore);
       const trace = await store.getTrace(request.params.id);
       if (!trace) {
         return reply.status(404).send({ error: "Trace not found" });

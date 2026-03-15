@@ -634,26 +634,75 @@ function isLoggedIn() {
   return !!localStorage.getItem('lantern_token');
 }
 
+let authMode = 'login';
+
 function showLogin() {
+  const isSignup = authMode === 'signup';
+  const tabStyle = 'padding:10px 20px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);border-radius:var(--radius-sm) var(--radius-sm) 0 0;transition:all 0.15s;';
+  const activeTab = tabStyle + 'background:var(--surface);color:var(--text);border-bottom:2px solid var(--accent);';
+  const inactiveTab = tabStyle + 'background:transparent;color:var(--text-muted);border-bottom:2px solid var(--border);';
+  const inputStyle = 'width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:12px;font-family:var(--font);outline:none;transition:border-color 0.15s;';
+
   document.querySelector('main').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;">' +
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:40px;width:360px;">' +
-    '<h2 style="margin-bottom:8px;">Sign in to Lantern</h2>' +
-    '<p style="color:var(--text-dim);font-size:14px;margin-bottom:24px;">Enter your credentials to view traces</p>' +
-    '<div id="login-error" style="color:var(--red);font-size:13px;margin-bottom:12px;display:none;"></div>' +
-    '<input id="login-email" type="email" placeholder="Email" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:12px;font-family:var(--sans);" />' +
-    '<input id="login-password" type="password" placeholder="Password" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:12px;font-family:var(--sans);" />' +
-    '<input id="login-api-url" type="text" placeholder="API URL (optional)" value="' + API + '" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:20px;font-family:var(--mono);font-size:12px;" />' +
-    '<button onclick="doLogin()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--sans);">Sign In</button>' +
-    '</div></div>';
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0;width:400px;overflow:hidden;box-shadow:var(--shadow-card);">' +
+
+    // Tabs
+    '<div style="display:flex;border-bottom:1px solid var(--border);">' +
+    '<button onclick="authMode=\'login\';showLogin()" style="flex:1;' + (isSignup ? inactiveTab : activeTab) + '">Sign In</button>' +
+    '<button onclick="authMode=\'signup\';showLogin()" style="flex:1;' + (isSignup ? activeTab : inactiveTab) + '">Create Account</button>' +
+    '</div>' +
+
+    '<div style="padding:32px 36px;">' +
+    '<p style="color:var(--text-dim);font-size:14px;margin-bottom:20px;">' +
+      (isSignup ? 'Start monitoring your agents in minutes' : 'Enter your credentials to view traces') +
+    '</p>' +
+    '<div id="login-error" style="color:var(--red);font-size:13px;margin-bottom:12px;padding:8px 12px;background:var(--red-dim);border-radius:var(--radius-sm);display:none;"></div>' +
+    '<div id="login-success" style="color:var(--green);font-size:13px;margin-bottom:12px;padding:8px 12px;background:var(--green-dim);border-radius:var(--radius-sm);display:none;"></div>' +
+
+    // Signup-only fields
+    (isSignup ?
+      '<input id="login-name" type="text" placeholder="Organization name" style="' + inputStyle + '" />' +
+      '<input id="login-slug" type="text" placeholder="URL slug (e.g. my-company)" style="' + inputStyle + 'font-family:var(--mono);font-size:13px;" />'
+    : '') +
+
+    '<input id="login-email" type="email" placeholder="Email address" style="' + inputStyle + '" />' +
+    '<input id="login-password" type="password" placeholder="Password" style="' + inputStyle + '" />' +
+
+    // API URL (collapsed by default)
+    '<details style="margin-bottom:16px;">' +
+    '<summary style="font-size:12px;color:var(--text-muted);cursor:pointer;margin-bottom:8px;">Advanced: API URL</summary>' +
+    '<input id="login-api-url" type="text" value="' + API + '" style="' + inputStyle + 'font-family:var(--mono);font-size:12px;margin-bottom:0;" />' +
+    '</details>' +
+
+    '<button onclick="' + (isSignup ? 'doSignup()' : 'doLogin()') + '" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:background 0.15s;">' +
+      (isSignup ? 'Create Account' : 'Sign In') +
+    '</button>' +
+    '</div></div></div>';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  const s = document.getElementById('login-success');
+  if (s) s.style.display = 'none';
+}
+
+function showAuthSuccess(msg) {
+  const el = document.getElementById('login-success');
+  el.textContent = msg;
+  el.style.display = 'block';
+  const e = document.getElementById('login-error');
+  if (e) e.style.display = 'none';
 }
 
 async function doLogin() {
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-password').value;
-  const apiUrl = document.getElementById('login-api-url').value;
-  const errEl = document.getElementById('login-error');
-  errEl.style.display = 'none';
+  const apiUrlEl = document.getElementById('login-api-url');
+  const apiUrl = apiUrlEl ? apiUrlEl.value : API;
 
+  if (!email || !password) { showAuthError('Email and password are required'); return; }
   if (apiUrl) localStorage.setItem('lantern_api_url', apiUrl);
 
   try {
@@ -663,25 +712,81 @@ async function doLogin() {
       body: JSON.stringify({ email, password }),
     });
     const data = await r.json();
-    if (!r.ok) {
-      errEl.textContent = data.error || 'Login failed';
-      errEl.style.display = 'block';
-      return;
-    }
+    if (!r.ok) { showAuthError(data.error || 'Login failed'); return; }
     localStorage.setItem('lantern_token', data.token);
     window.location.reload();
   } catch (e) {
-    errEl.textContent = 'Connection failed. Check API URL.';
-    errEl.style.display = 'block';
+    showAuthError('Connection failed. Check API URL.');
+  }
+}
+
+async function doSignup() {
+  const tenantName = document.getElementById('login-name').value;
+  const tenantSlug = document.getElementById('login-slug').value;
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  const apiUrlEl = document.getElementById('login-api-url');
+  const apiUrl = apiUrlEl ? apiUrlEl.value : API;
+
+  if (!tenantName || !tenantSlug || !email || !password) {
+    showAuthError('All fields are required');
+    return;
+  }
+  if (!/^[a-z0-9-]{3,32}$/.test(tenantSlug)) {
+    showAuthError('Slug must be 3-32 chars, lowercase letters, numbers, and hyphens');
+    return;
+  }
+  if (password.length < 8) {
+    showAuthError('Password must be at least 8 characters');
+    return;
+  }
+
+  if (apiUrl) localStorage.setItem('lantern_api_url', apiUrl);
+
+  try {
+    const r = await fetch(apiUrl + '/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, tenantSlug, tenantName }),
+    });
+    const data = await r.json();
+    if (!r.ok) { showAuthError(data.error || 'Signup failed'); return; }
+
+    // Save the API key for display
+    localStorage.setItem('lantern_token', data.token);
+    localStorage.setItem('lantern_api_key_once', data.apiKey);
+    window.location.reload();
+  } catch (e) {
+    showAuthError('Connection failed. Check API URL.');
   }
 }
 
 function doLogout() {
   localStorage.removeItem('lantern_token');
+  localStorage.removeItem('lantern_api_key_once');
   window.location.reload();
 }
 
-if (isLoggedIn()) { init(); } else { showLogin(); }
+if (isLoggedIn()) {
+  // Show API key banner if just signed up
+  const apiKeyOnce = localStorage.getItem('lantern_api_key_once');
+  if (apiKeyOnce) {
+    localStorage.removeItem('lantern_api_key_once');
+    setTimeout(() => {
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:999;background:var(--surface);border:1px solid var(--green);border-radius:var(--radius);padding:20px 28px;max-width:560px;width:90%;box-shadow:var(--shadow-card);';
+      banner.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+        '<strong style="color:var(--green);">Account created! Save your API key:</strong>' +
+        '<button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;">x</button></div>' +
+        '<code style="display:block;background:var(--bg);border:1px solid var(--border);padding:12px;border-radius:var(--radius-sm);font-family:var(--mono);font-size:13px;word-break:break-all;color:var(--text);">' + apiKeyOnce + '</code>' +
+        '<p style="color:var(--text-muted);font-size:12px;margin-top:8px;">This key is shown only once. Use it in your SDK to send traces.</p>';
+      document.body.appendChild(banner);
+    }, 500);
+  }
+  init();
+} else {
+  showLogin();
+}
 </script>
 </body>
 </html>
