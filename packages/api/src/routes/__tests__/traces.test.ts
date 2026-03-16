@@ -139,15 +139,11 @@ describe("GET /sources", () => {
     expect(res.json().sources).toEqual(["sdk", "proxy"]);
   });
 
-  it("uses store cache for same db url + tenant", async () => {
+  it("returns empty sources list when store has no sources", async () => {
     mockGetSources.mockResolvedValue([]);
-    const { PostgresTraceStore } = await import("@lantern-ai/ingest");
-
-    const app = await buildApp("postgres://localhost/test-cache");
-    await app.inject({ method: "GET", url: "/sources", headers: authHeaders() });
-    await app.inject({ method: "GET", url: "/sources", headers: authHeaders() });
-
-    // Store should be constructed once (cached)
-    expect(PostgresTraceStore).toHaveBeenCalledTimes(1);
+    const app = await buildApp("postgres://localhost/test-empty");
+    const res = await app.inject({ method: "GET", url: "/sources", headers: authHeaders() });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().sources).toEqual([]);
   });
 });

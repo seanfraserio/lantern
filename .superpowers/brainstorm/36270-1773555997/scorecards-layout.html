@@ -1,0 +1,175 @@
+<h2>Scorecards Page Layout</h2>
+<p class="subtitle">How should agent performance data be presented?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;height:380px;background:#0f1117;border-radius:6px;overflow:hidden;">
+        <!-- Sidebar -->
+        <div style="width:180px;background:#1a1d27;border-right:1px solid #2e3345;padding:16px;display:flex;flex-direction:column;gap:2px;">
+          <div style="font-size:14px;font-weight:700;color:#e1e4ed;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <div style="width:18px;height:18px;background:linear-gradient(135deg,#6c8cff,#a78bfa);border-radius:4px;"></div>
+            Lantern
+          </div>
+          <div style="font-size:9px;color:#8b91a5;text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px 4px;">Observe</div>
+          <div style="padding:6px 10px;color:#8b91a5;font-size:11px;border-radius:4px;">Traces</div>
+          <div style="padding:6px 10px;color:#8b91a5;font-size:11px;border-radius:4px;">Sources</div>
+          <div style="font-size:9px;color:#8b91a5;text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px 4px;margin-top:4px;">Quality</div>
+          <div style="padding:6px 10px;background:#6c8cff22;color:#6c8cff;font-size:11px;border-radius:4px;font-weight:600;">Scorecards</div>
+          <div style="padding:6px 10px;color:#8b91a5;font-size:11px;border-radius:4px;">Regressions</div>
+        </div>
+        <!-- Main content -->
+        <div style="flex:1;padding:16px;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="color:#e1e4ed;font-size:14px;font-weight:600;">Agent Scorecards</div>
+            <div style="display:flex;gap:4px;">
+              <div style="padding:3px 10px;background:#232734;color:#e1e4ed;border-radius:4px;font-size:10px;">30d</div>
+              <div style="padding:3px 10px;color:#8b91a5;font-size:10px;">7d</div>
+              <div style="padding:3px 10px;color:#8b91a5;font-size:10px;">90d</div>
+            </div>
+          </div>
+          <!-- Summary stats -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
+            <div style="background:#1a1d27;border:1px solid #2e3345;border-radius:6px;padding:10px;">
+              <div style="font-size:8px;color:#8b91a5;text-transform:uppercase;">Agents</div>
+              <div style="font-size:16px;font-weight:700;color:#6c8cff;">5</div>
+            </div>
+            <div style="background:#1a1d27;border:1px solid #2e3345;border-radius:6px;padding:10px;">
+              <div style="font-size:8px;color:#8b91a5;text-transform:uppercase;">Avg Success</div>
+              <div style="font-size:16px;font-weight:700;color:#34d399;">96.4%</div>
+            </div>
+            <div style="background:#1a1d27;border:1px solid #2e3345;border-radius:6px;padding:10px;">
+              <div style="font-size:8px;color:#8b91a5;text-transform:uppercase;">SLA Violations</div>
+              <div style="font-size:16px;font-weight:700;color:#f87171;">2</div>
+            </div>
+            <div style="background:#1a1d27;border:1px solid #2e3345;border-radius:6px;padding:10px;">
+              <div style="font-size:8px;color:#8b91a5;text-transform:uppercase;">Total Cost</div>
+              <div style="font-size:16px;font-weight:700;color:#fbbf24;">$847</div>
+            </div>
+          </div>
+          <!-- SLA violations banner -->
+          <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:6px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <div style="font-size:10px;color:#f87171;font-weight:600;">⚠ 2 SLA Violations</div>
+            <div style="font-size:9px;color:#8b91a5;">support-triage: P95 latency 1240ms > 800ms | data-pipeline: Success rate 91% < 95%</div>
+          </div>
+          <!-- Agent table -->
+          <div style="background:#1a1d27;border:1px solid #2e3345;border-radius:6px;overflow:hidden;">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid #2e3345;font-size:9px;color:#8b91a5;text-transform:uppercase;">
+              <div>Agent</div><div>Traces</div><div>Success</div><div>P95 Lat.</div><div>Cost</div><div>Trend</div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid #2e3345;font-size:11px;color:#e1e4ed;">
+              <div style="font-weight:600;">support-triage</div><div>12,847</div><div style="color:#34d399;">98.2%</div><div style="color:#f87171;">1240ms</div><div>$312</div><div style="color:#34d399;">↑</div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid #2e3345;font-size:11px;color:#e1e4ed;">
+              <div style="font-weight:600;">data-pipeline</div><div>8,204</div><div style="color:#f87171;">91.0%</div><div>420ms</div><div>$204</div><div style="color:#f87171;">↓</div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:8px 12px;border-bottom:1px solid #2e3345;font-size:11px;color:#e1e4ed;">
+              <div style="font-weight:600;">code-reviewer</div><div>3,102</div><div style="color:#34d399;">99.1%</div><div>680ms</div><div>$187</div><div>—</div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:8px 12px;font-size:11px;color:#e1e4ed;">
+              <div style="font-weight:600;">research-agent</div><div>2,441</div><div style="color:#34d399;">97.8%</div><div>510ms</div><div>$144</div><div style="color:#34d399;">↑</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Table-First with SLA Banner</h3>
+      <p>Summary stats at top, SLA violation alert banner, then a sortable agent table showing all metrics. Click an agent row to drill into its detail view with daily breakdown. Compact, data-dense, great for 5-50 agents.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;height:380px;background:#0f1117;border-radius:6px;overflow:hidden;">
+        <!-- Sidebar -->
+        <div style="width:180px;background:#1a1d27;border-right:1px solid #2e3345;padding:16px;display:flex;flex-direction:column;gap:2px;">
+          <div style="font-size:14px;font-weight:700;color:#e1e4ed;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <div style="width:18px;height:18px;background:linear-gradient(135deg,#6c8cff,#a78bfa);border-radius:4px;"></div>
+            Lantern
+          </div>
+          <div style="font-size:9px;color:#8b91a5;text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px 4px;">Observe</div>
+          <div style="padding:6px 10px;color:#8b91a5;font-size:11px;border-radius:4px;">Traces</div>
+          <div style="padding:6px 10px;color:#8b91a5;font-size:11px;border-radius:4px;">Sources</div>
+          <div style="font-size:9px;color:#8b91a5;text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px 4px;margin-top:4px;">Quality</div>
+          <div style="padding:6px 10px;background:#6c8cff22;color:#6c8cff;font-size:11px;border-radius:4px;font-weight:600;">Scorecards</div>
+          <div style="padding:6px 10px;color:#8b91a5;font-size:11px;border-radius:4px;">Regressions</div>
+        </div>
+        <!-- Main content -->
+        <div style="flex:1;padding:16px;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="color:#e1e4ed;font-size:14px;font-weight:600;">Agent Scorecards</div>
+            <div style="display:flex;gap:4px;">
+              <div style="padding:3px 10px;background:#232734;color:#e1e4ed;border-radius:4px;font-size:10px;">30d</div>
+              <div style="padding:3px 10px;color:#8b91a5;font-size:10px;">7d</div>
+              <div style="padding:3px 10px;color:#8b91a5;font-size:10px;">90d</div>
+            </div>
+          </div>
+          <!-- Agent cards grid -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <!-- Card 1 -->
+            <div style="background:#1a1d27;border:1px solid #2e3345;border-radius:8px;padding:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <div style="font-size:13px;font-weight:600;color:#e1e4ed;">support-triage</div>
+                <div style="font-size:9px;padding:2px 8px;background:rgba(248,113,113,0.15);color:#f87171;border-radius:10px;font-weight:600;">SLA BREACH</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+                <div><div style="font-size:8px;color:#8b91a5;">Success</div><div style="font-size:14px;font-weight:700;color:#34d399;">98.2%</div></div>
+                <div><div style="font-size:8px;color:#8b91a5;">P95</div><div style="font-size:14px;font-weight:700;color:#f87171;">1240ms</div></div>
+                <div><div style="font-size:8px;color:#8b91a5;">Cost</div><div style="font-size:14px;font-weight:700;color:#fbbf24;">$312</div></div>
+              </div>
+              <div style="height:40px;background:#232734;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#8b91a5;">sparkline chart</div>
+              <div style="margin-top:6px;font-size:9px;color:#34d399;">↑ Improving · 12,847 traces</div>
+            </div>
+            <!-- Card 2 -->
+            <div style="background:#1a1d27;border:1px solid #2e3345;border-radius:8px;padding:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <div style="font-size:13px;font-weight:600;color:#e1e4ed;">data-pipeline</div>
+                <div style="font-size:9px;padding:2px 8px;background:rgba(248,113,113,0.15);color:#f87171;border-radius:10px;font-weight:600;">SLA BREACH</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+                <div><div style="font-size:8px;color:#8b91a5;">Success</div><div style="font-size:14px;font-weight:700;color:#f87171;">91.0%</div></div>
+                <div><div style="font-size:8px;color:#8b91a5;">P95</div><div style="font-size:14px;font-weight:700;color:#34d399;">420ms</div></div>
+                <div><div style="font-size:8px;color:#8b91a5;">Cost</div><div style="font-size:14px;font-weight:700;color:#fbbf24;">$204</div></div>
+              </div>
+              <div style="height:40px;background:#232734;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#8b91a5;">sparkline chart</div>
+              <div style="margin-top:6px;font-size:9px;color:#f87171;">↓ Declining · 8,204 traces</div>
+            </div>
+            <!-- Card 3 -->
+            <div style="background:#1a1d27;border:1px solid #2e3345;border-radius:8px;padding:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <div style="font-size:13px;font-weight:600;color:#e1e4ed;">code-reviewer</div>
+                <div style="font-size:9px;padding:2px 8px;background:rgba(52,211,153,0.15);color:#34d399;border-radius:10px;font-weight:600;">HEALTHY</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+                <div><div style="font-size:8px;color:#8b91a5;">Success</div><div style="font-size:14px;font-weight:700;color:#34d399;">99.1%</div></div>
+                <div><div style="font-size:8px;color:#8b91a5;">P95</div><div style="font-size:14px;font-weight:700;color:#fbbf24;">680ms</div></div>
+                <div><div style="font-size:8px;color:#8b91a5;">Cost</div><div style="font-size:14px;font-weight:700;color:#fbbf24;">$187</div></div>
+              </div>
+              <div style="height:40px;background:#232734;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#8b91a5;">sparkline chart</div>
+              <div style="margin-top:6px;font-size:9px;color:#8b91a5;">— Stable · 3,102 traces</div>
+            </div>
+            <!-- Card 4 -->
+            <div style="background:#1a1d27;border:1px solid #2e3345;border-radius:8px;padding:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <div style="font-size:13px;font-weight:600;color:#e1e4ed;">research-agent</div>
+                <div style="font-size:9px;padding:2px 8px;background:rgba(52,211,153,0.15);color:#34d399;border-radius:10px;font-weight:600;">HEALTHY</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+                <div><div style="font-size:8px;color:#8b91a5;">Success</div><div style="font-size:14px;font-weight:700;color:#34d399;">97.8%</div></div>
+                <div><div style="font-size:8px;color:#8b91a5;">P95</div><div style="font-size:14px;font-weight:700;color:#34d399;">510ms</div></div>
+                <div><div style="font-size:8px;color:#8b91a5;">Cost</div><div style="font-size:14px;font-weight:700;color:#fbbf24;">$144</div></div>
+              </div>
+              <div style="height:40px;background:#232734;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#8b91a5;">sparkline chart</div>
+              <div style="margin-top:6px;font-size:9px;color:#34d399;">↑ Improving · 2,441 traces</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Card Grid with Sparklines</h3>
+      <p>Each agent gets its own card with key metrics, SLA status badge, trend sparkline, and quality direction. More visual, easier to scan health at a glance. Click a card to drill into daily breakdown. Works well for 3-20 agents.</p>
+    </div>
+  </div>
+</div>

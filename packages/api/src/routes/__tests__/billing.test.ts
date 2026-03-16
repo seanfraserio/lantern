@@ -59,6 +59,19 @@ function makeMockPool(tenantRow?: Record<string, unknown>): pg.Pool {
 
 async function buildApp(pool: pg.Pool) {
   const app = Fastify({ logger: false });
+  // Register custom body parser that stores rawBody for Stripe webhook verification
+  app.addContentTypeParser(
+    "application/json",
+    { parseAs: "buffer" },
+    (req, body, done) => {
+      (req as unknown as Record<string, unknown>).rawBody = body;
+      try {
+        done(null, JSON.parse((body as Buffer).toString()));
+      } catch (err) {
+        done(err as Error, undefined);
+      }
+    }
+  );
   registerJwtAuth(app, JWT_SECRET);
   registerBillingRoutes(app, pool, BILLING_CONFIG);
   await app.ready();
@@ -182,6 +195,7 @@ describe("POST /billing/webhook", () => {
     const res = await app.inject({
       method: "POST",
       url: "/billing/webhook",
+      headers: { "content-type": "application/json" },
       payload: JSON.stringify({ type: "checkout.session.completed" }),
     });
     expect(res.statusCode).toBe(400);
@@ -203,11 +217,15 @@ describe("POST /billing/webhook", () => {
     });
 
     const app = await buildApp(pool);
+    const body = JSON.stringify({ type: "checkout.session.completed" });
     const res = await app.inject({
       method: "POST",
       url: "/billing/webhook",
-      headers: { "stripe-signature": "t=123,v1=abc" },
-      payload: Buffer.from(JSON.stringify({ type: "checkout.session.completed" })),
+      headers: {
+        "content-type": "application/json",
+        "stripe-signature": "t=123,v1=abc",
+      },
+      payload: body,
     });
 
     expect(res.statusCode).toBe(200);

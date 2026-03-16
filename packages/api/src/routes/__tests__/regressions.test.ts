@@ -11,9 +11,61 @@ function authHeaders(payload = USER) {
   return { authorization: `Bearer ${signJwt(payload, JWT_SECRET)}` };
 }
 
-function makeMockPool(): pg.Pool {
+/**
+ * SQL-matching pool mock — robust against registerRegressionRoutes firing
+ * ENSURE_TABLE_SQL at registration time (a fire-and-forget pool.query call).
+ * By matching on SQL content, we avoid fragile call-order mocking.
+ */
+function makeMockPool(options: {
+  agents?: Array<{ agent_name: string }>;
+  baselineRows?: unknown[];
+  recentRows?: unknown[];
+  historyRows?: unknown[];
+  historyCount?: string;
+  snapshotRows?: unknown[];
+} = {}): pg.Pool {
+  const {
+    agents = [],
+    baselineRows = [],
+    recentRows = [],
+    historyRows = [],
+    historyCount = "0",
+    snapshotRows = [],
+  } = options;
+
   return {
-    query: vi.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+    query: vi.fn().mockImplementation((sql: string) => {
+      // Table creation (fires at registration) — always succeeds silently
+      if (sql.includes("CREATE TABLE")) {
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      }
+      // /regressions/check: get distinct agents
+      if (sql.includes("DISTINCT agent_name")) {
+        return Promise.resolve({ rows: agents, rowCount: agents.length });
+      }
+      // /regressions/check: insert detected regression events
+      if (sql.includes("INSERT INTO public.regression_events")) {
+        return Promise.resolve({ rows: [], rowCount: 1 });
+      }
+      // /regressions/history: count query
+      if (sql.includes("SELECT COUNT(*)")) {
+        return Promise.resolve({ rows: [{ count: historyCount }], rowCount: 1 });
+      }
+      // /regressions/history: main events query
+      if (sql.includes("SELECT id, agent_name, metric")) {
+        return Promise.resolve({ rows: historyRows, rowCount: historyRows.length });
+      }
+      // Baseline traces query: has both start_time >= $2 AND start_time < $3
+      if (sql.includes("start_time >= $2") && sql.includes("start_time < $3")) {
+        return Promise.resolve({ rows: baselineRows, rowCount: baselineRows.length });
+      }
+      // Recent traces or snapshot query: has start_time >= $2 only
+      if (sql.includes("start_time >= $2")) {
+        const rows = snapshotRows.length > 0 ? snapshotRows : recentRows;
+        return Promise.resolve({ rows, rowCount: rows.length });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    }),
   } as unknown as pg.Pool;
 }
 
@@ -25,28 +77,21 @@ async function buildApp(pool: pg.Pool) {
   return app;
 }
 
+const sampleTrace = {
+  status: "success",
+  duration_ms: 200,
+  total_input_tokens: 100,
+  total_output_tokens: 50,
+  spans: [],
+};
+
 describe("GET /regressions/check", () => {
   it("returns regression check results for all agents", async () => {
-    const pool = makeMockPool();
-    const queryMock = pool.query as ReturnType<typeof vi.fn>;
-
-    // ENSURE_TABLE_SQL fires at startup (pool.query called outside routes)
-    // Then when the route is hit: get agents, then baseline + recent per agent
-    queryMock
-      .mockResolvedValueOnce({ rows: [{ agent_name: "my-agent" }], rowCount: 1 })  // DISTINCT agents
-      .mockResolvedValueOnce({
-        rows: [
-          { status: "success", duration_ms: 200, total_input_tokens: 100, total_output_tokens: 50, spans: [] },
-        ],
-        rowCount: 1,
-      })  // baseline rows
-      .mockResolvedValueOnce({
-        rows: [
-          { status: "success", duration_ms: 250, total_input_tokens: 100, total_output_tokens: 60, spans: [] },
-        ],
-        rowCount: 1,
-      })  // recent rows (no significant deviation → no regression events)
-      ;
+    const pool = makeMockPool({
+      agents: [{ agent_name: "my-agent" }],
+      baselineRows: [sampleTrace, sampleTrace],
+      recentRows: [sampleTrace],  // similar metrics → no regression
+    });
 
     const app = await buildApp(pool);
     const res = await app.inject({
@@ -63,12 +108,11 @@ describe("GET /regressions/check", () => {
     expect(body.agents[0]).toHaveProperty("baselineMetrics");
     expect(body.agents[0]).toHaveProperty("currentMetrics");
     expect(body.agents[0]).toHaveProperty("regressions");
+    expect(body.agents[0]).toHaveProperty("hasRegression");
   });
 
   it("returns empty results when no agents found", async () => {
-    const pool = makeMockPool();
-    (pool.query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [], rowCount: 0 });
-
+    const pool = makeMockPool({ agents: [] });
     const app = await buildApp(pool);
     const res = await app.inject({
       method: "GET",
@@ -79,6 +123,32 @@ describe("GET /regressions/check", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().agentCount).toBe(0);
     expect(res.json().agents).toEqual([]);
+  });
+
+  it("detects regression when error rate significantly increases", async () => {
+    const goodTrace = { ...sampleTrace, status: "success", spans: [] };
+    const errorTrace = { status: "error", duration_ms: 500, total_input_tokens: 100, total_output_tokens: 50, spans: [] };
+
+    const pool = makeMockPool({
+      agents: [{ agent_name: "my-agent" }],
+      // Baseline: 10 good traces → 0% error rate
+      baselineRows: Array(10).fill(goodTrace),
+      // Recent: 5 error traces → 100% error rate (regression!)
+      recentRows: Array(5).fill(errorTrace),
+    });
+
+    const app = await buildApp(pool);
+    const res = await app.inject({
+      method: "GET",
+      url: "/regressions/check",
+      headers: authHeaders(),
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.agents[0].hasRegression).toBe(true);
+    expect(body.agents[0].regressions.length).toBeGreaterThan(0);
+    expect(body.regressionsFound).toBeGreaterThan(0);
   });
 
   it("returns 401 when no auth header", async () => {
@@ -100,11 +170,10 @@ describe("GET /regressions/history", () => {
       detected_at: new Date(),
     };
 
-    const pool = makeMockPool();
-    const queryMock = pool.query as ReturnType<typeof vi.fn>;
-    queryMock
-      .mockResolvedValueOnce({ rows: [event], rowCount: 1 })   // main query
-      .mockResolvedValueOnce({ rows: [{ count: "1" }], rowCount: 1 });  // count query
+    const pool = makeMockPool({
+      historyRows: [event],
+      historyCount: "1",
+    });
 
     const app = await buildApp(pool);
     const res = await app.inject({
@@ -121,13 +190,22 @@ describe("GET /regressions/history", () => {
     expect(body).toHaveProperty("offset");
   });
 
-  it("accepts agentName filter", async () => {
-    const pool = makeMockPool();
-    const queryMock = pool.query as ReturnType<typeof vi.fn>;
-    queryMock
-      .mockResolvedValueOnce({ rows: [], rowCount: 0 })
-      .mockResolvedValueOnce({ rows: [{ count: "0" }], rowCount: 1 });
+  it("returns empty history when no events", async () => {
+    const pool = makeMockPool({ historyRows: [], historyCount: "0" });
+    const app = await buildApp(pool);
+    const res = await app.inject({
+      method: "GET",
+      url: "/regressions/history",
+      headers: authHeaders(),
+    });
 
+    expect(res.statusCode).toBe(200);
+    expect(res.json().events).toHaveLength(0);
+    expect(res.json().total).toBe(0);
+  });
+
+  it("accepts agentName filter", async () => {
+    const pool = makeMockPool({ historyRows: [], historyCount: "0" });
     const app = await buildApp(pool);
     const res = await app.inject({
       method: "GET",
@@ -137,17 +215,18 @@ describe("GET /regressions/history", () => {
 
     expect(res.statusCode).toBe(200);
   });
+
+  it("returns 401 without auth", async () => {
+    const app = await buildApp(makeMockPool());
+    const res = await app.inject({ method: "GET", url: "/regressions/history" });
+    expect(res.statusCode).toBe(401);
+  });
 });
 
 describe("POST /regressions/baseline/:agentName", () => {
   it("returns baseline metrics for agent", async () => {
-    const pool = makeMockPool();
-    (pool.query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      rows: [
-        { status: "success", duration_ms: 300, total_input_tokens: 200, total_output_tokens: 100, spans: [] },
-        { status: "success", duration_ms: 350, total_input_tokens: 220, total_output_tokens: 110, spans: [] },
-      ],
-      rowCount: 2,
+    const pool = makeMockPool({
+      snapshotRows: [sampleTrace, sampleTrace],
     });
 
     const app = await buildApp(pool);
@@ -166,9 +245,7 @@ describe("POST /regressions/baseline/:agentName", () => {
   });
 
   it("returns 404 when no traces found for agent", async () => {
-    const pool = makeMockPool();
-    (pool.query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [], rowCount: 0 });
-
+    const pool = makeMockPool({ snapshotRows: [] });
     const app = await buildApp(pool);
     const res = await app.inject({
       method: "POST",
@@ -177,5 +254,11 @@ describe("POST /regressions/baseline/:agentName", () => {
     });
 
     expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 401 without auth", async () => {
+    const app = await buildApp(makeMockPool());
+    const res = await app.inject({ method: "POST", url: "/regressions/baseline/my-agent" });
+    expect(res.statusCode).toBe(401);
   });
 });
