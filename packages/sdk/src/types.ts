@@ -88,6 +88,7 @@ export interface TracerConfig {
   exporter: ITraceExporter;
   batchSize?: number;
   flushIntervalMs?: number;
+  promptsEndpoint?: string;
 }
 
 export interface ITraceExporter {

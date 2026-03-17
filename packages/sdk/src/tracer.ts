@@ -11,6 +11,7 @@ import type {
   TraceStatus,
 } from "./types.js";
 import { AgentSpan } from "./span.js";
+import { Prompt, PromptClient } from "./prompts.js";
 
 /**
  * Core tracer for Lantern. Manages traces and spans, and exports them
@@ -27,6 +28,7 @@ export class LanternTracer {
   private serviceName: string;
   private environment: string;
   private source: TraceSource;
+  private promptClient?: PromptClient;
 
   constructor(config: TracerConfig) {
     this.exporter = config.exporter;
@@ -39,6 +41,10 @@ export class LanternTracer {
       sdkVersion: "0.1.0",
       exporterType: config.exporter.exporterType,
     };
+
+    if (config.promptsEndpoint) {
+      this.promptClient = new PromptClient(config.promptsEndpoint);
+    }
 
     // Start periodic flush
     this.flushTimer = setInterval(() => {
@@ -145,6 +151,16 @@ export class LanternTracer {
    */
   getTrace(traceId: string): Trace | undefined {
     return this.traces.get(traceId);
+  }
+
+  /**
+   * Fetch a managed prompt by name. Requires promptsEndpoint to be set in TracerConfig.
+   */
+  getPrompt(name: string): Promise<Prompt> {
+    if (!this.promptClient) {
+      throw new Error("Prompt client not configured. Set promptsEndpoint in TracerConfig.");
+    }
+    return this.promptClient.getPrompt(name);
   }
 
   /**

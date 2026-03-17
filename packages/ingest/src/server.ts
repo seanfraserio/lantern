@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { registerTraceRoutes } from "./routes/traces.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerDashboardRoutes } from "./routes/dashboard.js";
+import { registerPromptRoutes } from "./routes/prompts.js";
 import { registerObservability, recordMetric } from "./lib/observability.js";
 import type { ITraceStore } from "@lantern-ai/sdk";
 
@@ -52,6 +53,15 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   // In multi-tenant mode, store is resolved per-request via TenantResolver
   const defaultStore = await resolveDefaultStore(config);
   const apiKey = config?.apiKey ?? process.env.LANTERN_API_KEY;
+
+  // Prompt store (SQLite-backed, shared across tenants)
+  const { PromptStore } = await import("./store/prompt-store.js");
+  const Database = (await import("better-sqlite3")).default;
+  const promptDbPath = config?.dbPath ?? "lantern.db";
+  const promptDb = new Database(promptDbPath);
+  promptDb.pragma("journal_mode = WAL");
+  const promptStore = new PromptStore(promptDb);
+  promptStore.initialize();
 
   const app = Fastify({
     logger: true,
@@ -164,6 +174,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     registerTraceRoutes(app, defaultStore, true);
     registerHealthRoutes(app, defaultStore);
     registerDashboardRoutes(app);
+    registerPromptRoutes(app, promptStore);
   } else {
     // ── Single-tenant mode (OSS / self-hosted) ──
     if (apiKey) {
@@ -185,6 +196,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     registerTraceRoutes(app, defaultStore, false);
     registerHealthRoutes(app, defaultStore);
     registerDashboardRoutes(app, apiKey);
+    registerPromptRoutes(app, promptStore);
   }
 
   await app.listen({ port, host });
