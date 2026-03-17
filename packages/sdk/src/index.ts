@@ -2,6 +2,7 @@ export { LanternTracer } from "./tracer.js";
 export { AgentSpan } from "./span.js";
 export { wrapAnthropicClient } from "./collectors/anthropic.js";
 export { wrapOpenAIClient } from "./collectors/openai.js";
+export { wrapGoogleGenerativeModel } from "./collectors/google.js";
 export { wrapMcpClient } from "./collectors/mcp.js";
 export { createLanternCallbackHandler } from "./collectors/langchain.js";
 export { createLanternEventHandler } from "./collectors/llamaindex.js";
