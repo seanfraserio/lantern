@@ -8,6 +8,12 @@ dist/
 *.log
 .DS_Store
 
-# Enterprise packages live in a separate private repo
+# Enterprise (private repos)
 packages/enterprise/
+packages/api/
+packages/dashboard/
+site/
 infra/
+.superpowers/
+docs/superpowers/
+docs/enterprise.md

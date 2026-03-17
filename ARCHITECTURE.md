@@ -1,14 +1,13 @@
 # Lantern — Agent Observability & Tracing
 
-Lantern gives full visibility into agent behavior in production. It traces reasoning chains (not just function calls), tracks quality metrics over time, attributes token costs per workflow, and flags PII flowing through prompts. Self-hosted (OSS) or managed cloud (enterprise).
+Lantern gives full visibility into agent behavior in production. It traces reasoning chains (not just function calls), tracks quality metrics over time, and attributes token costs per workflow.
 
 ## Package Map
 
 - `packages/sdk` — `@lantern-ai/sdk`: Core tracing SDK with LanternTracer, spans, collectors (Anthropic/OpenAI/MCP auto-instrumentation), and exporters.
 - `packages/ingest` — `@lantern-ai/ingest`: Fastify HTTP server for trace ingestion. POST /v1/traces endpoint with SQLite/Postgres storage.
 - `packages/evaluator` — `@lantern-ai/evaluator`: Quality scoring framework with built-in scorers (relevance, toxicity, latency) and baseline regression detection.
-- `packages/dashboard` — `@lantern-ai/dashboard`: React web UI for viewing traces, metrics, cost breakdowns, and quality alerts.
-- `packages/enterprise` — `@lantern-ai/enterprise`: BUSL-1.1 licensed features (PII detection, SOC2/HIPAA audit export, alerting, team RBAC, managed cloud).
+- `packages/enterprise` — `@lantern-ai/enterprise`: Enterprise features (BUSL-1.1, private repo).
 
 ## Key Architectural Decisions
 
@@ -21,14 +20,13 @@ Lantern gives full visibility into agent behavior in production. It traces reaso
 
 ## OSS / Enterprise Boundary
 
-OSS (MIT) covers the full trace capture pipeline: SDK instrumentation, ingest server, storage, dashboard, and evaluation framework. Enterprise (BUSL-1.1) adds features required by regulated or large-scale environments: PII detection in traces, SOC2/HIPAA audit export, Slack/PagerDuty alerting, team-scoped RBAC, and managed cloud hosting. The line is drawn at features that require organizational infrastructure or compliance guarantees.
+OSS (MIT) covers the full trace capture pipeline: SDK instrumentation, ingest server, storage, and evaluation framework. Enterprise (BUSL-1.1) adds features for regulated and large-scale environments (private repo).
 
 ## Contribution Conventions
 
 - New auto-instrumentation collectors go in `packages/sdk/src/collectors/<provider>.ts` and are re-exported from `packages/sdk/src/index.ts`.
 - New evaluation scorers go in `packages/evaluator/src/scorers/<name>.ts` and are re-exported from `packages/evaluator/src/index.ts`.
 - New exporters go in `packages/sdk/src/exporters/<name>.ts`.
-- Dashboard components go in `packages/dashboard/src/components/` with corresponding page integrations in `packages/dashboard/src/pages/`.
 - All shared types belong in `packages/sdk/src/types.ts`.
 - Tests are co-located as `*.test.ts` next to the file they test.
 
