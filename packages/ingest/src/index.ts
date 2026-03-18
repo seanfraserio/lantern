@@ -1,5 +1,7 @@
 export { createServer } from "./server.js";
 export type { IngestServerConfig } from "./server.js";
+export { loadConfig } from "./config.js";
+export type { LanternConfig } from "./config.js";
 export { SqliteTraceStore } from "./store/sqlite.js";
 export { PostgresTraceStore } from "./store/postgres.js";
 export type { PostgresConfig } from "./store/postgres.js";

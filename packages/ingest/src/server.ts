@@ -6,6 +6,8 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerDashboardRoutes } from "./routes/dashboard.js";
 import { registerPromptRoutes } from "./routes/prompts.js";
 import { registerObservability, recordMetric } from "./lib/observability.js";
+import { loadConfig } from "./config.js";
+import type { LanternConfig } from "./config.js";
 import type { ITraceStore } from "@lantern-ai/sdk";
 
 export interface IngestServerConfig {
@@ -16,6 +18,7 @@ export interface IngestServerConfig {
   apiKey?: string;
   databaseUrl?: string;
   multiTenant?: boolean;
+  configPath?: string;
 }
 
 /**
@@ -29,42 +32,63 @@ async function createPostgresStore(databaseUrl: string, tenantSchema: string): P
   return store;
 }
 
-async function resolveDefaultStore(config?: Partial<IngestServerConfig>): Promise<ITraceStore> {
+async function resolveDefaultStore(
+  config?: Partial<IngestServerConfig>,
+  yamlCfg?: LanternConfig,
+): Promise<ITraceStore> {
   if (config?.store) return config.store;
 
-  const storeType = process.env.STORE_TYPE ?? "sqlite";
+  const storeType = process.env.STORE_TYPE ?? yamlCfg?.storage.type ?? "sqlite";
   if (storeType === "postgres" || config?.databaseUrl) {
-    const url = config?.databaseUrl ?? process.env.DATABASE_URL ?? "";
+    const url = config?.databaseUrl ?? process.env.DATABASE_URL ?? yamlCfg?.storage.url ?? "";
     const schema = process.env.TENANT_SCHEMA ?? "public";
     return createPostgresStore(url, schema);
   }
 
   const { SqliteTraceStore } = await import("./store/sqlite.js");
-  return new SqliteTraceStore(config?.dbPath ?? "lantern.db");
+  return new SqliteTraceStore(config?.dbPath ?? yamlCfg?.storage.path ?? "lantern.db");
+}
+
+function maskApiKeys(cfg: LanternConfig): LanternConfig {
+  if (!cfg.auth?.api_keys?.length) return cfg;
+  return {
+    ...cfg,
+    auth: {
+      ...cfg.auth,
+      api_keys: cfg.auth.api_keys.map((k) =>
+        k.length > 8 ? `${k.slice(0, 4)}****${k.slice(-4)}` : "****"
+      ),
+    },
+  };
 }
 
 export async function createServer(config?: Partial<IngestServerConfig>) {
-  const port = config?.port ?? parseInt(process.env.PORT ?? "4100", 10);
-  const host = config?.host ?? "127.0.0.1";
-  const databaseUrl = config?.databaseUrl ?? process.env.DATABASE_URL ?? "";
+  // Load YAML config (falls back to defaults when no file exists)
+  const yamlConfig = loadConfig(config?.configPath);
+
+  const port = config?.port ?? parseInt(process.env.PORT ?? String(yamlConfig.server.port), 10);
+  const host = config?.host ?? yamlConfig.server.host;
+  const databaseUrl = config?.databaseUrl ?? process.env.DATABASE_URL ?? yamlConfig.storage.url ?? "";
   const multiTenant = config?.multiTenant ?? process.env.MULTI_TENANT === "true";
+
+  console.log("[lantern] Loaded config:", JSON.stringify(maskApiKeys(yamlConfig), null, 2));
 
   // In single-tenant mode, use a fixed store
   // In multi-tenant mode, store is resolved per-request via TenantResolver
-  const defaultStore = await resolveDefaultStore(config);
+  const defaultStore = await resolveDefaultStore(config, yamlConfig);
   const apiKey = config?.apiKey ?? process.env.LANTERN_API_KEY;
 
   // Prompt store (SQLite-backed, shared across tenants)
   const { PromptStore } = await import("./store/prompt-store.js");
   const Database = (await import("better-sqlite3")).default;
-  const promptDbPath = config?.dbPath ?? "lantern.db";
+  const promptDbPath = config?.dbPath ?? yamlConfig.storage.path ?? "lantern.db";
   const promptDb = new Database(promptDbPath);
   promptDb.pragma("journal_mode = WAL");
   const promptStore = new PromptStore(promptDb);
   promptStore.initialize();
 
   const app = Fastify({
-    logger: true,
+    logger: { level: yamlConfig.server.log_level },
     bodyLimit: 1_048_576,
     genReqId: (req) => (req.headers["x-request-id"] as string) ?? randomUUID(),
   });

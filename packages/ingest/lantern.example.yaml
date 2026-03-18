@@ -1,0 +1,28 @@
+version: "1"
+
+server:
+  port: 3000
+  host: "127.0.0.1"
+  log_level: info
+
+storage:
+  type: sqlite
+  path: "./lantern.db"
+  # For Postgres:
+  # type: postgres
+  # url: "${DATABASE_URL}"
+
+export:
+  batch_size: 50
+  flush_interval_ms: 5000
+
+auth:
+  enabled: false
+  api_keys:
+    - "${LANTERN_API_KEY}"
+
+prompts:
+  enabled: true
+
+retention:
+  default_days: 30
