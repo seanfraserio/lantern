@@ -173,6 +173,14 @@ describe("buildAnthropicUrl", () => {
     );
   });
 
+  it("rejects paths with traversal sequences", () => {
+    expect(() => buildAnthropicUrl("/anthropic/v1/../../../etc/passwd")).toThrow("Invalid API path");
+  });
+
+  it("rejects paths that do not start with /v1/", () => {
+    expect(() => buildAnthropicUrl("/anthropic/admin/keys")).toThrow("Invalid API path");
+  });
+
   it("ANTHROPIC_BASE_URL points to api.anthropic.com", () => {
     expect(ANTHROPIC_BASE_URL).toBe("https://api.anthropic.com");
   });

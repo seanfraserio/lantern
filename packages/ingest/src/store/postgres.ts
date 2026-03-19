@@ -18,6 +18,12 @@ export class PostgresTraceStore implements ITraceStore {
   private schema: string;
 
   constructor(config: PostgresConfig) {
+    if (!/^[a-z0-9_]{1,63}$/.test(config.tenantSchema)) {
+      throw new Error(
+        `Invalid tenant schema name: "${config.tenantSchema}". ` +
+        `Must match /^[a-z0-9_]{1,63}$/.`
+      );
+    }
     this.pool = new Pool({
       connectionString: config.connectionString,
       max: config.poolSize ?? 5,

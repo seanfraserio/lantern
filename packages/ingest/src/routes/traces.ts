@@ -4,7 +4,6 @@ import { recordMetric } from "../lib/observability.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_TRACES_PER_REQUEST = 100;
-const MAX_STRING_LENGTH = 100_000;
 const VALID_STATUSES = new Set(["success", "error", "running"]);
 
 interface TraceInput {

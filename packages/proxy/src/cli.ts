@@ -2,7 +2,7 @@
 import { createProxyServer } from "./server.js";
 
 createProxyServer({
-  host: "0.0.0.0", // Bind to all interfaces for Cloud Run / Docker
+  host: process.env.HOST ?? "127.0.0.1",
 }).then(({ port, host, ingestEndpoint }) => {
   console.log(`Lantern LLM Proxy running on ${host}:${port}`);
   console.log(`  Ingest endpoint: ${ingestEndpoint}`);

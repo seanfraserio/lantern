@@ -280,7 +280,7 @@ describe("registerProxyRoutes — trace forwarding", () => {
 
     // Second fetch call should be the ingest call
     const ingestCalls = fetchMock.mock.calls.filter(
-      ([url]: [string]) => url.includes("ingest.test")
+      (call) => (call[0] as string).includes("ingest.test")
     );
     expect(ingestCalls.length).toBeGreaterThanOrEqual(1);
     const ingestBody = JSON.parse(ingestCalls[0][1].body as string);
