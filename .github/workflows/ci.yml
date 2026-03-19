@@ -7,6 +7,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
@@ -20,10 +21,19 @@ jobs:
       - run: pnpm audit --audit-level=high
       - run: pnpm typecheck
       - run: pnpm build
-      - run: pnpm test
+      - name: Lint
+        run: pnpm lint
+      - name: Test with coverage
+        run: pnpm test -- --coverage
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
   python-sdk:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -1,6 +1,6 @@
 {
   "name": "lantern-ai",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -19,6 +19,7 @@
     "@types/node": "^25.5.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "@vitest/coverage-v8": "^1.4.0",
     "eslint": "^8.57.0",
     "prettier": "^3.2.0",
     "tsup": "^8.0.0",
