@@ -7,6 +7,7 @@
  */
 
 import Fastify from "fastify";
+import { timingSafeEqual } from "node:crypto";
 import { registerProxyRoutes } from "./proxy.js";
 
 export interface ProxyConfig {
@@ -23,11 +24,52 @@ export async function createProxyServer(config?: ProxyConfig) {
   const host = config?.host ?? "127.0.0.1";
   const ingestEndpoint =
     config?.ingestEndpoint ?? process.env.LANTERN_INGEST_URL ?? "http://localhost:4100";
+  const proxyApiKey = process.env.LANTERN_PROXY_API_KEY;
 
   const app = Fastify({
     logger: true,
     bodyLimit: 10_485_760, // 10MB for large prompts
   });
+
+  // Security headers
+  app.addHook("onSend", async (_request, reply) => {
+    reply.header("X-Content-Type-Options", "nosniff");
+    reply.header("Cache-Control", "no-store");
+    reply.header("X-Frame-Options", "DENY");
+    reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
+  });
+
+  // Content-type validation: only accept application/json for non-GET requests
+  app.addHook("onRequest", async (request, reply) => {
+    if (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS") {
+      return;
+    }
+    const ct = request.headers["content-type"];
+    if (ct && !ct.startsWith("application/json")) {
+      return reply.status(415).send({ error: "Unsupported Media Type. Only application/json is accepted." });
+    }
+  });
+
+  // API key authentication (if LANTERN_PROXY_API_KEY is set)
+  if (proxyApiKey) {
+    app.addHook("onRequest", async (request, reply) => {
+      // Skip auth for health endpoint
+      if (request.url === "/health") return;
+
+      const auth = request.headers.authorization;
+      if (!auth || !auth.startsWith("Bearer ")) {
+        return reply.status(401).send({ error: "Unauthorized" });
+      }
+      const token = auth.slice(7);
+      const expected = proxyApiKey;
+      if (
+        token.length !== expected.length ||
+        !timingSafeEqual(Buffer.from(token), Buffer.from(expected))
+      ) {
+        return reply.status(401).send({ error: "Unauthorized" });
+      }
+    });
+  }
 
   // Parse JSON bodies for all content types (some clients may not set Content-Type)
   app.addContentTypeParser("*", { parseAs: "string" }, (_req, body, done) => {
@@ -44,7 +86,6 @@ export async function createProxyServer(config?: ProxyConfig) {
   app.get("/health", async () => ({
     status: "ok",
     service: "lantern-proxy",
-    uptime: process.uptime(),
   }));
 
   // Register proxy routes (catch-all)

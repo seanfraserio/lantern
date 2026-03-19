@@ -22,7 +22,6 @@ import {
   buildOpenAIUrl,
 } from "./providers/openai.js";
 import { buildTrace } from "./trace-builder.js";
-import type { Readable } from "node:stream";
 
 type Provider = "anthropic" | "openai";
 
@@ -84,22 +83,45 @@ const STRIP_RESPONSE_HEADERS = new Set([
   "server",
 ]);
 
+const HOP_BY_HOP_HEADERS = new Set(["transfer-encoding", "connection"]);
+
+/**
+ * Allowlist of request headers to forward to upstream LLM APIs.
+ * Only these headers are forwarded — everything else is stripped.
+ */
+const ALLOWED_REQUEST_HEADERS = new Set([
+  "authorization",
+  "content-type",
+  "x-api-key",
+  "anthropic-version",
+  "anthropic-beta",
+  "openai-organization",
+  "openai-project",
+]);
+
+/**
+ * Forward response headers from the upstream response to the client reply,
+ * stripping hop-by-hop and sensitive headers.
+ */
+function forwardResponseHeaders(upstreamResponse: Response, reply: FastifyReply): void {
+  for (const [key, value] of upstreamResponse.headers.entries()) {
+    const lower = key.toLowerCase();
+    if (HOP_BY_HOP_HEADERS.has(lower)) continue;
+    if (STRIP_RESPONSE_HEADERS.has(lower)) continue;
+    reply.header(key, value);
+  }
+}
+
 /**
  * Build upstream headers from the incoming request.
- * Strips all X-Lantern-* headers so they don't leak to the upstream API.
+ * Uses an allowlist to only forward recognized, safe headers.
  */
 function buildUpstreamHeaders(incomingHeaders: Record<string, string | string[] | undefined>): Record<string, string> {
   const upstream: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(incomingHeaders)) {
-    // Skip Lantern-specific headers
-    if (key.toLowerCase().startsWith("x-lantern-")) continue;
-    // Skip hop-by-hop headers
-    if (key.toLowerCase() === "host") continue;
-    if (key.toLowerCase() === "connection") continue;
-    if (key.toLowerCase() === "transfer-encoding") continue;
-    // Skip content-length since we re-serialize the body
-    if (key.toLowerCase() === "content-length") continue;
+    const lower = key.toLowerCase();
+    if (!ALLOWED_REQUEST_HEADERS.has(lower)) continue;
 
     if (value !== undefined) {
       upstream[key] = Array.isArray(value) ? value.join(", ") : value;
@@ -187,14 +209,7 @@ async function handleNonStreaming(
 
   // Forward the response status and headers to the client
   reply.status(upstreamResponse.status);
-  for (const [key, value] of upstreamResponse.headers.entries()) {
-    // Skip hop-by-hop headers
-    if (key.toLowerCase() === "transfer-encoding") continue;
-    if (key.toLowerCase() === "connection") continue;
-    // Strip sensitive upstream headers
-    if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
-    reply.header(key, value);
-  }
+  forwardResponseHeaders(upstreamResponse, reply);
 
   // Parse response and build trace (only for successful responses)
   if (upstreamResponse.ok) {
@@ -271,12 +286,7 @@ async function handleStreaming(
     const durationMs = Math.round(performance.now() - startTime);
 
     reply.status(upstreamResponse.status);
-    for (const [key, value] of upstreamResponse.headers.entries()) {
-      if (key.toLowerCase() === "transfer-encoding") continue;
-      if (key.toLowerCase() === "connection") continue;
-      if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
-      reply.header(key, value);
-    }
+    forwardResponseHeaders(upstreamResponse, reply);
 
     const trace = buildTrace({
       provider,
@@ -297,12 +307,7 @@ async function handleStreaming(
 
   // Forward SSE headers to the client
   reply.status(upstreamResponse.status);
-  for (const [key, value] of upstreamResponse.headers.entries()) {
-    if (key.toLowerCase() === "transfer-encoding") continue;
-    if (key.toLowerCase() === "connection") continue;
-    if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
-    reply.header(key, value);
-  }
+  forwardResponseHeaders(upstreamResponse, reply);
 
   // Pipe the stream through to the client while collecting SSE data
   const collectedChunks: string[] = [];
@@ -410,19 +415,19 @@ export function registerProxyRoutes(app: FastifyInstance, ctx: ProxyContext): vo
         request,
         reply,
       );
-    } else {
-      return handleNonStreaming(
-        provider,
-        targetUrl,
-        upstreamHeaders,
-        requestBody,
-        parsedRequest,
-        lanternApiKey,
-        serviceName,
-        ctx,
-        request,
-        reply,
-      );
     }
+
+    return handleNonStreaming(
+      provider,
+      targetUrl,
+      upstreamHeaders,
+      requestBody,
+      parsedRequest,
+      lanternApiKey,
+      serviceName,
+      ctx,
+      request,
+      reply,
+    );
   });
 }

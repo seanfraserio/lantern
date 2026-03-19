@@ -1,4 +1,8 @@
+import { createRequire } from "node:module";
 import type { ITraceExporter, Trace, Span, SpanType } from "../types.js";
+
+const require = createRequire(import.meta.url);
+const { version: SDK_VERSION } = require("../../package.json") as { version: string };
 
 export interface OtlpExporterConfig {
   endpoint: string;
@@ -117,7 +121,7 @@ function buildExportRequest(traces: Trace[]): OtlpExportRequest {
       },
       scopeSpans: [
         {
-          scope: { name: "@lantern-ai/sdk", version: "0.1.0" },
+          scope: { name: "@lantern-ai/sdk", version: SDK_VERSION },
           spans: trace.spans.map(convertSpan),
         },
       ],

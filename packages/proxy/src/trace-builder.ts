@@ -6,7 +6,11 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import type { Trace, Span } from "@lantern-ai/sdk";
+
+const require = createRequire(import.meta.url);
+const { version: PKG_VERSION } = require("../package.json") as { version: string };
 
 export interface CapturedData {
   provider: "anthropic" | "openai";
@@ -62,7 +66,7 @@ export function buildTrace(capture: CapturedData): Trace {
     metadata: { provider: capture.provider, proxied: true },
     source: {
       serviceName: capture.serviceName ?? "lantern-proxy",
-      sdkVersion: "0.1.0",
+      sdkVersion: PKG_VERSION,
       exporterType: "proxy",
     },
     spans: [span],

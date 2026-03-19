@@ -116,7 +116,8 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     const { TenantResolver } = await import("./middleware/tenant.js");
     const resolver = new TenantResolver(pool);
 
-    // Store cache: reuse PostgresTraceStore instances per tenant
+    // Store cache: reuse PostgresTraceStore instances per tenant (max 100)
+    const STORE_CACHE_MAX = 100;
     const storeCache = new Map<string, ITraceStore>();
 
     // Usage limit cache: { tenantId -> { count, checkedAt } }
@@ -184,6 +185,15 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
       // Get or create a store for this tenant
       let store = storeCache.get(tenant.tenantSlug);
       if (!store) {
+        // Evict oldest entry if cache is full
+        if (storeCache.size >= STORE_CACHE_MAX) {
+          const oldestKey = storeCache.keys().next().value!;
+          const evicted = storeCache.get(oldestKey);
+          storeCache.delete(oldestKey);
+          if (evicted && "close" in evicted && typeof (evicted as { close: () => Promise<void> }).close === "function") {
+            (evicted as { close: () => Promise<void> }).close().catch(() => {});
+          }
+        }
         store = await createPostgresStore(databaseUrl, `tenant_${tenant.tenantSlug}`);
         storeCache.set(tenant.tenantSlug, store);
       }
@@ -201,6 +211,12 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     registerPromptRoutes(app, promptStore);
   } else {
     // ── Single-tenant mode (OSS / self-hosted) ──
+    if (!apiKey) {
+      console.warn(
+        "[lantern] WARNING: No API key configured. The ingest server is running without authentication. " +
+        "Set LANTERN_API_KEY or configure auth.api_keys in lantern.yaml to secure the API."
+      );
+    }
     if (apiKey) {
       const { timingSafeEqual } = await import("node:crypto");
       app.addHook("onRequest", async (request, reply) => {

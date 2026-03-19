@@ -92,9 +92,13 @@ export function parseAnthropicSSEChunks(chunks: string[]): Partial<AnthropicCapt
 /**
  * Build the target URL for an Anthropic API request.
  * Strips the /anthropic prefix from the path.
+ * Validates that the resulting path is safe (no traversal, must start with /v1/).
  */
 export function buildAnthropicUrl(path: string): string {
   // /anthropic/v1/messages -> /v1/messages
   const stripped = path.replace(/^\/anthropic/, "");
+  if (stripped.includes("..") || !stripped.startsWith("/v1/")) {
+    throw new Error(`Invalid API path: ${stripped}`);
+  }
   return `${ANTHROPIC_BASE_URL}${stripped}`;
 }

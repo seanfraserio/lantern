@@ -64,18 +64,19 @@ export function createLanternEventHandler(
     const usage = raw?.usage as Record<string, unknown> | undefined;
     if (!usage) return {};
 
-    return {
-      inputTokens: typeof usage.prompt_tokens === "number"
-        ? usage.prompt_tokens
-        : typeof usage.input_tokens === "number"
-          ? usage.input_tokens
-          : undefined,
-      outputTokens: typeof usage.completion_tokens === "number"
-        ? usage.completion_tokens
-        : typeof usage.output_tokens === "number"
-          ? usage.output_tokens
-          : undefined,
-    };
+    const inputTokens = typeof usage.prompt_tokens === "number"
+      ? usage.prompt_tokens
+      : typeof usage.input_tokens === "number"
+        ? usage.input_tokens
+        : undefined;
+
+    const outputTokens = typeof usage.completion_tokens === "number"
+      ? usage.completion_tokens
+      : typeof usage.output_tokens === "number"
+        ? usage.output_tokens
+        : undefined;
+
+    return { inputTokens, outputTokens };
   }
 
   return {
@@ -87,19 +88,14 @@ export function createLanternEventHandler(
       // Resolve or create a trace
       let traceId = opts?.traceId;
       if (!traceId) {
-        // Look for an existing trace from a prior start event, or create one
-        const existingTraceId = activeSpans.size > 0
-          ? undefined // will create a new one below
-          : undefined;
-        void existingTraceId;
-
         const trace = tracer.startTrace({
           agentName: opts?.agentName ?? "llamaindex-agent",
         });
         traceId = trace.id;
         // Persist it so subsequent events reuse this trace
-        (opts as { traceId?: string } | undefined) &&
-          ((opts as { traceId?: string }).traceId = traceId);
+        if (opts) {
+          (opts as { traceId?: string }).traceId = traceId;
+        }
       }
 
       const eventId = getEventId(payload);
@@ -108,13 +104,18 @@ export function createLanternEventHandler(
         const spanType = EVENT_SPAN_TYPE[eventType] ?? "custom";
         const model = extractModel(payload);
 
-        const input = eventType === "llm_start"
-          ? { messages: Array.isArray(payload.messages)
+        let input: { messages?: Array<{ role: string; content: string }>; prompt?: string };
+        if (eventType === "llm_start") {
+          input = {
+            messages: Array.isArray(payload.messages)
               ? (payload.messages as Array<{ role: string; content: string }>)
-              : undefined }
-          : eventType === "retrieval_start"
-            ? { prompt: typeof payload.query === "string" ? payload.query : undefined }
-            : { prompt: typeof payload.query === "string" ? payload.query : undefined };
+              : undefined,
+          };
+        } else {
+          input = {
+            prompt: typeof payload.query === "string" ? payload.query : undefined,
+          };
+        }
 
         const span = tracer.startSpan(traceId, {
           type: spanType,
@@ -134,13 +135,14 @@ export function createLanternEventHandler(
 
         const tokens = extractTokens(payload);
 
-        const responseContent = typeof payload.response === "string"
-          ? payload.response
-          : typeof (payload.response as Record<string, unknown> | undefined)?.text === "string"
-            ? (payload.response as Record<string, unknown>).text as string
-            : typeof payload.response === "object" && payload.response !== null
-              ? JSON.stringify(payload.response)
-              : undefined;
+        let responseContent: string | undefined;
+        if (typeof payload.response === "string") {
+          responseContent = payload.response;
+        } else if (typeof (payload.response as Record<string, unknown> | undefined)?.text === "string") {
+          responseContent = (payload.response as Record<string, unknown>).text as string;
+        } else if (typeof payload.response === "object" && payload.response !== null) {
+          responseContent = JSON.stringify(payload.response);
+        }
 
         // For retrieval_end, capture node count
         const nodes = payload.nodes as unknown[] | undefined;
@@ -151,9 +153,7 @@ export function createLanternEventHandler(
         tracer.endSpan(
           spanId,
           { content: responseContent ?? retrievalInfo },
-          {
-            ...tokens,
-          }
+          tokens,
         );
       }
     },

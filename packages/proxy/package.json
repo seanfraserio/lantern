@@ -1,6 +1,6 @@
 {
   "name": "@lantern-ai/proxy",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@lantern-ai/sdk": "workspace:*",
-    "fastify": "^4.26.0"
+    "fastify": "^5.8.2"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

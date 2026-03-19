@@ -271,12 +271,9 @@ export function registerObservability(
       }
 
       // Structured log
-      const level =
-        reply.statusCode >= 500
-          ? "error"
-          : reply.statusCode >= 400
-            ? "warn"
-            : "info";
+      let level: "info" | "warn" | "error" = "info";
+      if (reply.statusCode >= 500) level = "error";
+      else if (reply.statusCode >= 400) level = "warn";
       buffer.addLog({
         level,
         message: `${method} ${route} ${statusCode} ${durationMs}ms`,
@@ -315,17 +312,3 @@ export function recordMetric(
   buffer?.addMetric({ name, value, labels, timestamp: Date.now() });
 }
 
-/**
- * Record a custom event/log. Call from route handlers.
- */
-export function recordEvent(
-  name: string,
-  attributes: Record<string, string | number | boolean> = {},
-): void {
-  buffer?.addLog({
-    level: "info",
-    message: name,
-    attributes,
-    timestamp: Date.now(),
-  });
-}

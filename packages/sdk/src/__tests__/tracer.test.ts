@@ -69,7 +69,7 @@ describe("LanternTracer", () => {
     it("includes source with serviceName and sdkVersion", () => {
       const trace = tracer.startTrace({ agentName: "agent" });
       expect(trace.source?.serviceName).toBe("test-service");
-      expect(trace.source?.sdkVersion).toBe("0.1.0");
+      expect(trace.source?.sdkVersion).toMatch(/^\d+\.\d+\.\d+/);
       expect(trace.source?.exporterType).toBe("mock");
     });
   });

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import type {
   Trace,
   TraceSource,
@@ -13,10 +14,15 @@ import type {
 import { AgentSpan } from "./span.js";
 import { Prompt, PromptClient } from "./prompts.js";
 
+const require = createRequire(import.meta.url);
+const { version: SDK_VERSION } = require("../package.json") as { version: string };
+
 /**
  * Core tracer for Lantern. Manages traces and spans, and exports them
  * to a configured backend.
  */
+const MAX_BUFFER_SIZE = 10_000;
+
 export class LanternTracer {
   private traces: Map<string, Trace> = new Map();
   private activeSpans: Map<string, AgentSpan> = new Map();
@@ -38,7 +44,7 @@ export class LanternTracer {
     this.environment = config.environment ?? "dev";
     this.source = {
       serviceName: this.serviceName,
-      sdkVersion: "0.1.0",
+      sdkVersion: SDK_VERSION,
       exporterType: config.exporter.exporterType,
     };
 
@@ -140,6 +146,15 @@ export class LanternTracer {
     this.buffer.push(trace);
     this.traces.delete(traceId);
 
+    // Guard against unbounded buffer growth
+    if (this.buffer.length > MAX_BUFFER_SIZE) {
+      const dropped = this.buffer.length - MAX_BUFFER_SIZE;
+      this.buffer = this.buffer.slice(dropped);
+      console.warn(
+        `[lantern] Buffer exceeded ${MAX_BUFFER_SIZE} traces. Dropped ${dropped} oldest traces.`
+      );
+    }
+
     // Auto-flush if buffer is full
     if (this.buffer.length >= this.batchSize) {
       this.flush().catch(console.error);
@@ -176,6 +191,14 @@ export class LanternTracer {
       await this.exporter.export(toExport);
     } catch (error) {
       this.buffer.unshift(...toExport);
+      // Prevent unbounded growth on repeated export failures
+      if (this.buffer.length > MAX_BUFFER_SIZE) {
+        const dropped = this.buffer.length - MAX_BUFFER_SIZE;
+        this.buffer = this.buffer.slice(dropped);
+        console.warn(
+          `[lantern] Buffer exceeded ${MAX_BUFFER_SIZE} after failed flush. Dropped ${dropped} oldest traces.`
+        );
+      }
       throw error;
     }
   }
