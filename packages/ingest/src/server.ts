@@ -81,7 +81,8 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   // Prompt store (SQLite-backed, shared across tenants)
   const { PromptStore } = await import("./store/prompt-store.js");
   const Database = (await import("better-sqlite3")).default;
-  const promptDbPath = config?.dbPath ?? yamlConfig.storage.path ?? "lantern.db";
+  // Use /tmp/ for prompt DB on Cloud Run (ephemeral filesystem), configurable via env var
+  const promptDbPath = process.env.PROMPT_DB_PATH ?? config?.dbPath ?? "/tmp/lantern-prompts.db";
   const promptDb = new Database(promptDbPath);
   promptDb.pragma("journal_mode = WAL");
   const promptStore = new PromptStore(promptDb);
