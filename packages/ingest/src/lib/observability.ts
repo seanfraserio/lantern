@@ -137,41 +137,32 @@ class MetricsBuffer {
 
   private async flushLogs(logs: LogEntry[]): Promise<void> {
     try {
-      const logRecords = logs.map((entry) => ({
-        timeUnixNano: msToNs(entry.timestamp),
-        body: {
-          stringValue: JSON.stringify({
-            message: entry.message,
-            ...entry.attributes,
-          }),
-        },
-        severityText: entry.level.toUpperCase(),
-        attributes: Object.entries(entry.attributes).map(([k, v]) =>
-          toAttr(k, String(v)),
-        ),
-      }));
+      // Use Loki native push API (OTLP gateway routes to different Loki cluster)
+      const lokiEndpoint = process.env.GRAFANA_LOKI_URL ?? this.config.endpoint;
+      const lokiUser = process.env.GRAFANA_LOKI_USER ?? this.config.user;
+
+      const streams = new Map<string, Array<[string, string]>>();
+      for (const entry of logs) {
+        const key = entry.level;
+        if (!streams.has(key)) streams.set(key, []);
+        streams.get(key)!.push([msToNs(entry.timestamp), entry.message]);
+      }
+
       const body = JSON.stringify({
-        resourceLogs: [
-          {
-            resource: {
-              attributes: [toAttr("service.name", this.serviceName)],
-            },
-            scopeLogs: [{ logRecords }],
-          },
-        ],
+        streams: Array.from(streams.entries()).map(([level, values]) => ({
+          stream: { service_name: this.serviceName, level },
+          values,
+        })),
       });
-      const response = await fetch(`${this.config.endpoint}/otlp/v1/logs`, {
+
+      const lokiAuth = `Basic ${Buffer.from(`${lokiUser}:${this.config.token}`).toString("base64")}`;
+      const response = await fetch(`${lokiEndpoint}/loki/api/v1/push`, {
         method: "POST",
-        headers: {
-          Authorization: this.authHeader,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json", Authorization: lokiAuth },
         body,
       });
       if (!response.ok)
-        console.error(
-          `[obs] Logs push failed: ${response.status} ${await response.text()}`,
-        );
+        console.error(`[obs] Logs push failed: ${response.status}`);
     } catch (err) {
       console.error("[obs] Logs push error:", err);
     }
