@@ -56,7 +56,7 @@ describe("POST /v1/traces — validation", () => {
       url: "/v1/traces",
       payload: { traces: [makeValidTrace()] },
     });
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(202);
     const body = JSON.parse(res.body);
     expect(body.accepted).toBe(1);
     expect(store.insert).toHaveBeenCalledOnce();
@@ -69,7 +69,7 @@ describe("POST /v1/traces — validation", () => {
       url: "/v1/traces",
       payload: { traces },
     });
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(202);
     expect(JSON.parse(res.body).accepted).toBe(3);
   });
 
@@ -140,7 +140,7 @@ describe("POST /v1/traces — validation", () => {
         url: "/v1/traces",
         payload: { traces: [makeValidTrace({ status })] },
       });
-      expect(res.statusCode).toBe(200);
+      expect(res.statusCode).toBe(202);
     }
   });
 
@@ -169,7 +169,7 @@ describe("POST /v1/traces — validation", () => {
       url: "/v1/traces",
       payload: { traces: [makeValidTrace({ agentName: "a".repeat(255) })] },
     });
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(202);
   });
 
   it("rejects trace with non-numeric startTime", async () => {
@@ -191,15 +191,16 @@ describe("POST /v1/traces — validation", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it("returns 500 when store.insert throws", async () => {
+  it("returns 202 even when store.insert fails (async write)", async () => {
     (store.insert as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("DB error"));
     const res = await app.inject({
       method: "POST",
       url: "/v1/traces",
       payload: { traces: [makeValidTrace()] },
     });
-    expect(res.statusCode).toBe(500);
-    expect(JSON.parse(res.body).errors[0]).toMatch(/internal server error/i);
+    // Async writes always return 202 — errors are logged in background
+    expect(res.statusCode).toBe(202);
+    expect(JSON.parse(res.body).accepted).toBe(1);
   });
 });
 

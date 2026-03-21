@@ -64,35 +64,30 @@ export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceSt
       return reply.status(400).send({ accepted: 0, errors } satisfies TraceIngestResponse);
     }
 
-    try {
-      const store = getStore(request, defaultStore);
-      await store.insert(traces);
+    // Record metrics synchronously
+    const tenantSlug = (request as unknown as Record<string, unknown>).tenantSlug as string | undefined;
+    recordMetric("traces_ingested_total", traces.length, { tenant: tenantSlug ?? "single" });
 
-      // Business metrics: trace ingestion volume
-      const tenantSlug = (request as unknown as Record<string, unknown>).tenantSlug as string | undefined;
-      recordMetric("traces_ingested_total", traces.length, { tenant: tenantSlug ?? "single" });
-
-      // Sum tokens across all traces if available
-      let totalTokens = 0;
-      for (const trace of traces) {
-        const t = trace as unknown as Record<string, unknown>;
-        if (typeof t.totalInputTokens === "number") totalTokens += t.totalInputTokens as number;
-        if (typeof t.totalOutputTokens === "number") totalTokens += t.totalOutputTokens as number;
-      }
-      if (totalTokens > 0) {
-        recordMetric("traces_ingested_tokens", totalTokens, { tenant: tenantSlug ?? "single" });
-      }
-
-      return reply.status(200).send({
-        accepted: traces.length,
-      } satisfies TraceIngestResponse);
-    } catch (error) {
-      request.log.error(error);
-      return reply.status(500).send({
-        accepted: 0,
-        errors: ["Internal server error"],
-      } satisfies TraceIngestResponse);
+    let totalTokens = 0;
+    for (const trace of traces) {
+      const t = trace as unknown as Record<string, unknown>;
+      if (typeof t.totalInputTokens === "number") totalTokens += t.totalInputTokens as number;
+      if (typeof t.totalOutputTokens === "number") totalTokens += t.totalOutputTokens as number;
     }
+    if (totalTokens > 0) {
+      recordMetric("traces_ingested_tokens", totalTokens, { tenant: tenantSlug ?? "single" });
+    }
+
+    // Write to DB asynchronously — respond immediately with 202
+    const store = getStore(request, defaultStore);
+    store.insert(traces).catch((error) => {
+      request.log.error(error, "Background trace insert failed");
+      recordMetric("traces_insert_errors", 1, { tenant: tenantSlug ?? "single" });
+    });
+
+    return reply.status(202).send({
+      accepted: traces.length,
+    } satisfies TraceIngestResponse);
   });
 
   // GET /v1/traces — query traces

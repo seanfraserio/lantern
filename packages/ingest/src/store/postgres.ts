@@ -26,7 +26,7 @@ export class PostgresTraceStore implements ITraceStore {
     }
     this.pool = new Pool({
       connectionString: config.connectionString,
-      max: config.poolSize ?? 5,
+      max: config.poolSize ?? 15,
     });
     this.schema = config.tenantSchema;
   }
@@ -66,39 +66,42 @@ export class PostgresTraceStore implements ITraceStore {
 
   async insert(traces: Trace[]): Promise<void> {
     if (traces.length === 0) return;
-    const client = await this.pool.connect();
-    try {
-      await client.query("BEGIN");
-      for (const trace of traces) {
-        await client.query(
-          `INSERT INTO ${this.table} (
-            id, session_id, agent_name, agent_version, environment,
-            start_time, end_time, duration_ms, status,
-            total_input_tokens, total_output_tokens, estimated_cost_usd,
-            metadata, source, spans, scores
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-          ON CONFLICT (id) DO NOTHING`,
-          [
-            trace.id, trace.sessionId, trace.agentName,
-            trace.agentVersion ?? null, trace.environment,
-            trace.startTime, trace.endTime ?? null,
-            trace.durationMs ?? null, trace.status,
-            trace.totalInputTokens, trace.totalOutputTokens,
-            trace.estimatedCostUsd,
-            JSON.stringify(trace.metadata),
-            trace.source ? JSON.stringify(trace.source) : null,
-            JSON.stringify(trace.spans),
-            trace.scores ? JSON.stringify(trace.scores) : null,
-          ]
-        );
-      }
-      await client.query("COMMIT");
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
-    } finally {
-      client.release();
+
+    // Build multi-row VALUES for batch insert (1 round-trip instead of N)
+    const COLS_PER_ROW = 16;
+    const params: unknown[] = [];
+    const valueRows: string[] = [];
+
+    for (let i = 0; i < traces.length; i++) {
+      const offset = i * COLS_PER_ROW;
+      const placeholders = Array.from({ length: COLS_PER_ROW }, (_, j) => `$${offset + j + 1}`);
+      valueRows.push(`(${placeholders.join(",")})`);
+
+      const trace = traces[i];
+      params.push(
+        trace.id, trace.sessionId, trace.agentName,
+        trace.agentVersion ?? null, trace.environment,
+        trace.startTime, trace.endTime ?? null,
+        trace.durationMs ?? null, trace.status,
+        trace.totalInputTokens, trace.totalOutputTokens,
+        trace.estimatedCostUsd,
+        JSON.stringify(trace.metadata),
+        trace.source ? JSON.stringify(trace.source) : null,
+        JSON.stringify(trace.spans),
+        trace.scores ? JSON.stringify(trace.scores) : null,
+      );
     }
+
+    await this.pool.query(
+      `INSERT INTO ${this.table} (
+        id, session_id, agent_name, agent_version, environment,
+        start_time, end_time, duration_ms, status,
+        total_input_tokens, total_output_tokens, estimated_cost_usd,
+        metadata, source, spans, scores
+      ) VALUES ${valueRows.join(",")}
+      ON CONFLICT (id) DO NOTHING`,
+      params
+    );
   }
 
   async getTrace(id: string): Promise<Trace | null> {
