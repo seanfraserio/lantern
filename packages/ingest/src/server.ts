@@ -25,9 +25,9 @@ export interface IngestServerConfig {
  * Create a store for the given tenant schema.
  * In multi-tenant mode, each request gets a store scoped to the tenant's schema.
  */
-async function createPostgresStore(databaseUrl: string, tenantSchema: string): Promise<ITraceStore> {
+async function createPostgresStore(databaseUrl: string, tenantSchema: string, poolSize?: number): Promise<ITraceStore> {
   const { PostgresTraceStore } = await import("./store/postgres.js");
-  const store = new PostgresTraceStore({ connectionString: databaseUrl, tenantSchema });
+  const store = new PostgresTraceStore({ connectionString: databaseUrl, tenantSchema, poolSize });
   await store.initialize();
   return store;
 }
@@ -113,13 +113,14 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     // ── Multi-tenant mode ──
     // Resolve API key → tenant on every /v1/ request
     const pg = await import("pg");
-    const pool = new pg.default.Pool({ connectionString: databaseUrl, max: 5 });
+    const pool = new pg.default.Pool({ connectionString: databaseUrl, max: 15 });
     const { TenantResolver } = await import("./middleware/tenant.js");
     const resolver = new TenantResolver(pool);
 
-    // Store cache: reuse PostgresTraceStore instances per tenant (max 100)
+    // Store cache: reuse PostgresTraceStore instances per tenant (max 100, LRU eviction)
     const STORE_CACHE_MAX = 100;
     const storeCache = new Map<string, ITraceStore>();
+    const storeCacheLastAccess = new Map<string, number>();
 
     // Usage limit cache: { tenantId -> { count, checkedAt } }
     const PLAN_LIMITS: Record<string, number> = {
@@ -185,18 +186,32 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
 
       // Get or create a store for this tenant
       let store = storeCache.get(tenant.tenantSlug);
-      if (!store) {
-        // Evict oldest entry if cache is full
+      if (store) {
+        // Update last access time for LRU tracking
+        storeCacheLastAccess.set(tenant.tenantSlug, Date.now());
+      } else {
+        // Evict least recently used entry if cache is full
         if (storeCache.size >= STORE_CACHE_MAX) {
-          const oldestKey = storeCache.keys().next().value!;
-          const evicted = storeCache.get(oldestKey);
-          storeCache.delete(oldestKey);
-          if (evicted && "close" in evicted && typeof (evicted as { close: () => Promise<void> }).close === "function") {
-            (evicted as { close: () => Promise<void> }).close().catch(() => {});
+          let lruKey: string | null = null;
+          let lruTime = Infinity;
+          for (const [key, accessTime] of storeCacheLastAccess) {
+            if (accessTime < lruTime) {
+              lruTime = accessTime;
+              lruKey = key;
+            }
+          }
+          if (lruKey) {
+            const evicted = storeCache.get(lruKey);
+            storeCache.delete(lruKey);
+            storeCacheLastAccess.delete(lruKey);
+            if (evicted && "close" in evicted && typeof (evicted as { close: () => Promise<void> }).close === "function") {
+              (evicted as { close: () => Promise<void> }).close().catch(() => {});
+            }
           }
         }
-        store = await createPostgresStore(databaseUrl, `tenant_${tenant.tenantSlug}`);
+        store = await createPostgresStore(databaseUrl, `tenant_${tenant.tenantSlug}`, 3);
         storeCache.set(tenant.tenantSlug, store);
+        storeCacheLastAccess.set(tenant.tenantSlug, Date.now());
       }
 
       // Attach tenant info and store to the request

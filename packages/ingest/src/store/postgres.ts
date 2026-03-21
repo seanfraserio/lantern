@@ -62,6 +62,9 @@ export class PostgresTraceStore implements ITraceStore {
     await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_env" ON ${this.table}(environment)`);
     await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_status" ON ${this.table}(status)`);
     await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_start" ON ${this.table}(start_time DESC)`);
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_agent_start" ON ${this.table}(agent_name, start_time DESC)`);
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_env_start" ON ${this.table}(environment, start_time DESC)`);
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_status_start" ON ${this.table}(status, start_time DESC)`);
   }
 
   async insert(traces: Trace[]): Promise<void> {
