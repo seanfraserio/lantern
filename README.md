@@ -54,6 +54,48 @@ This starts an ingest server on `http://localhost:4100`, seeds it with realistic
 - **Metrics** — Cost attribution by agent and source, token usage, trace timelines
 - **Sources** — See which services are sending traces, their SDK versions, and connected agents
 
+## Supported Integrations
+
+### LLM Providers
+
+| Provider | Language | Method |
+|----------|----------|--------|
+| Anthropic | TS, Python | SDK wrapper (`wrapAnthropicClient`) |
+| OpenAI | TS, Python | SDK wrapper (`wrapOpenAIClient`) |
+| Google Gemini | TS | SDK wrapper (`wrapGoogleGenerativeModel`) |
+| Mistral | TS | SDK wrapper (`wrapMistralClient`) |
+| Cohere | TS | SDK wrapper (`wrapCohereClient`) |
+| AWS Bedrock | TS | SDK wrapper (`wrapBedrockClient`) |
+| Groq | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+| Together AI | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+| Fireworks AI | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+| DeepSeek | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+| Perplexity | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+| Ollama | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+| OpenRouter | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+| xAI (Grok) | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+| Cerebras | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+| Novita AI | TS | OpenAI-compatible (`wrapOpenAICompatClient`) |
+
+### Frameworks & Agent SDKs
+
+| Framework | Language | Method |
+|-----------|----------|--------|
+| LangChain | TS | Callback handler (`createLanternCallbackHandler`) |
+| LlamaIndex | TS | Event handler (`createLanternEventHandler`) |
+| Vercel AI SDK | TS | Function wrapper (`wrapGenerateText` / `wrapStreamText`) |
+| OpenAI Agents SDK | TS | Trace processor (`createLanternTraceProcessor`) |
+| Mastra | TS | Telemetry hook (`createLanternMastraHook`) |
+| MCP | TS | Tool call wrapper (`wrapMcpClient`) |
+| CrewAI | Python | Lifecycle handler (`create_lantern_crewai_handler`) |
+| Pydantic AI | Python | Lifecycle handler (`create_lantern_pydantic_handler`) |
+| AutoGen | Python | Message hooks (`create_lantern_autogen_handler`) |
+| Haystack | Python | Pipeline callbacks (`create_lantern_haystack_handler`) |
+| DSPy | Python | Module tracing (`create_lantern_dspy_handler`) |
+| Smolagents | Python | Step callbacks (`create_lantern_smolagents_handler`) |
+
+See [docs/integrations/overview.md](docs/integrations/overview.md) for detailed per-integration documentation.
+
 ## Core Concepts
 
 - **Traces** — One complete agent execution, from user request to final response.

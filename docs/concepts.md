@@ -30,6 +30,22 @@ You can register custom scorers for domain-specific quality checks.
 
 **Baselines** are snapshots of scorer performance over a dataset. When new scores deviate significantly (>2 standard deviations) from a baseline, Lantern flags a quality regression.
 
+## Auto-instrumentation
+
+Lantern auto-instruments LLM calls and agent framework steps so you don't need to create spans manually.
+
+**SDK wrappers** — For direct LLM clients, wrap the client once and all calls are traced:
+- `wrapAnthropicClient` / `wrapOpenAIClient` for first-party SDKs
+- `wrapOpenAICompatClient` for any OpenAI-compatible provider (Groq, Together, Fireworks, DeepSeek, and more) — pass a `provider` label for correct cost attribution
+- `wrapGoogleGenerativeModel`, `wrapMistralClient`, `wrapCohereClient`, `wrapBedrockClient` for provider-specific SDKs
+
+**Framework callbacks** — For agent frameworks, Lantern provides callback/event handlers that plug into the framework's lifecycle:
+- `createLanternCallbackHandler` for LangChain (pass as `callbacks`)
+- `createLanternEventHandler` for LlamaIndex (register via `Settings.callbackManager`)
+- Framework-specific handlers for CrewAI, Pydantic AI, AutoGen, Haystack, DSPy, and Smolagents (Python)
+
+See the [SDK Reference](./sdk-reference.md) for the full list of collectors and the [Integrations](./integrations/overview.md) directory for per-integration guides.
+
 ## Exporters
 
 Exporters determine where trace data goes:
