@@ -37,6 +37,7 @@ export async function createProxyServer(config?: ProxyConfig) {
     reply.header("Cache-Control", "no-store");
     reply.header("X-Frame-Options", "DENY");
     reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
+    reply.header("Content-Security-Policy", "default-src 'none'");
   });
 
   // Content-type validation: only accept application/json for non-GET requests
