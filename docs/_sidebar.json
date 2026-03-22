@@ -1,0 +1,85 @@
+{
+  "sections": [
+    {
+      "title": "Getting Started",
+      "pages": [
+        { "slug": "getting-started", "title": "Quick Start" },
+        { "slug": "concepts", "title": "Core Concepts" }
+      ]
+    },
+    {
+      "title": "Integrations",
+      "pages": [
+        { "slug": "integrations/overview", "title": "Overview" },
+        { "slug": "integrations/anthropic", "title": "Anthropic" },
+        { "slug": "integrations/openai", "title": "OpenAI" },
+        { "slug": "integrations/google", "title": "Google Gemini" },
+        { "slug": "integrations/openai-compatible", "title": "OpenAI-Compatible Providers" },
+        { "slug": "integrations/mistral", "title": "Mistral" },
+        { "slug": "integrations/cohere", "title": "Cohere" },
+        { "slug": "integrations/bedrock", "title": "AWS Bedrock" },
+        { "slug": "integrations/langchain", "title": "LangChain" },
+        { "slug": "integrations/llamaindex", "title": "LlamaIndex" },
+        { "slug": "integrations/vercel-ai", "title": "Vercel AI SDK" },
+        { "slug": "integrations/openai-agents", "title": "OpenAI Agents SDK" },
+        { "slug": "integrations/mastra", "title": "Mastra" },
+        { "slug": "integrations/mcp", "title": "MCP" },
+        { "slug": "integrations/crewai", "title": "CrewAI" },
+        { "slug": "integrations/pydantic-ai", "title": "Pydantic AI" },
+        { "slug": "integrations/autogen", "title": "AutoGen" },
+        { "slug": "integrations/haystack", "title": "Haystack" },
+        { "slug": "integrations/dspy", "title": "DSPy" },
+        { "slug": "integrations/smolagents", "title": "Smolagents" }
+      ]
+    },
+    {
+      "title": "Tutorials",
+      "pages": [
+        { "slug": "tutorials/instrument-typescript", "title": "Instrument TypeScript" },
+        { "slug": "tutorials/instrument-python", "title": "Instrument Python" },
+        { "slug": "tutorials/self-hosting", "title": "Self-Hosting" }
+      ]
+    },
+    {
+      "title": "How-To Guides",
+      "pages": [
+        { "slug": "how-to/use-llm-proxy", "title": "Use LLM Proxy" },
+        { "slug": "how-to/monitor-costs", "title": "Monitor Costs" },
+        { "slug": "how-to/set-up-alerts", "title": "Set Up Alerts" },
+        { "slug": "how-to/detect-pii", "title": "Detect PII" },
+        { "slug": "how-to/export-compliance", "title": "Export Compliance Reports" },
+        { "slug": "how-to/manage-teams", "title": "Manage Teams" },
+        { "slug": "how-to/configure-sso", "title": "Configure SSO" },
+        { "slug": "how-to/troubleshooting", "title": "Troubleshooting" }
+      ]
+    },
+    {
+      "title": "Explanation",
+      "pages": [
+        { "slug": "explanation/architecture", "title": "Architecture" },
+        { "slug": "explanation/tracing-model", "title": "Tracing Model" },
+        { "slug": "explanation/security", "title": "Security" },
+        { "slug": "explanation/pricing-and-plans", "title": "Pricing & Plans" }
+      ]
+    },
+    {
+      "title": "Reference",
+      "pages": [
+        { "slug": "sdk-reference", "title": "SDK Overview" },
+        { "slug": "reference/sdk-typescript", "title": "TypeScript SDK" },
+        { "slug": "reference/sdk-python", "title": "Python SDK" },
+        { "slug": "reference/api", "title": "API Server" },
+        { "slug": "reference/ingest-api", "title": "Ingest API" },
+        { "slug": "reference/proxy", "title": "LLM Proxy" },
+        { "slug": "reference/configuration", "title": "Configuration" }
+      ]
+    },
+    {
+      "title": "Enterprise",
+      "pages": [
+        { "slug": "enterprise", "title": "Enterprise Features" },
+        { "slug": "self-hosting", "title": "Self-Hosting" }
+      ]
+    }
+  ]
+}
