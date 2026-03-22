@@ -13,7 +13,7 @@ const require = createRequire(import.meta.url);
 const { version: PKG_VERSION } = require("../package.json") as { version: string };
 
 export interface CapturedData {
-  provider: "anthropic" | "openai";
+  provider: "anthropic" | "openai" | "mistral" | "cohere";
   model: string;
   inputMessages: Array<{ role: string; content: string }>;
   outputContent: string;
@@ -23,6 +23,7 @@ export interface CapturedData {
   stopReason?: string | null;
   error?: string;
   serviceName?: string;
+  providerOverride?: string;
 }
 
 export function buildTrace(capture: CapturedData): Trace {
@@ -63,7 +64,7 @@ export function buildTrace(capture: CapturedData): Trace {
     totalInputTokens: capture.inputTokens,
     totalOutputTokens: capture.outputTokens,
     estimatedCostUsd: 0,
-    metadata: { provider: capture.provider, proxied: true },
+    metadata: { provider: capture.providerOverride ?? capture.provider, proxied: true },
     source: {
       serviceName: capture.serviceName ?? "lantern-proxy",
       sdkVersion: PKG_VERSION,
