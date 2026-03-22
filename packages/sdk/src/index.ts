@@ -7,6 +7,8 @@ export { wrapMcpClient } from "./collectors/mcp.js";
 export { createLanternCallbackHandler } from "./collectors/langchain.js";
 export { createLanternEventHandler } from "./collectors/llamaindex.js";
 export { wrapGenerateText, wrapStreamText } from "./collectors/vercel-ai.js";
+export { normalizeTokens, getPricing, normalizeMessages, buildSpanInput, wrapWithTrace } from "./collectors/_utils.js";
+export type { WrapOpts } from "./collectors/_utils.js";
 export { Prompt, PromptClient, type PromptData } from "./prompts.js";
 export { LanternExporter } from "./exporters/lantern.js";
 export type { LanternExporterConfig } from "./exporters/lantern.js";
