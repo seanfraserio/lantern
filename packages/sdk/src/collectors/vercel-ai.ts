@@ -108,7 +108,7 @@ function buildSpanInput(params: VercelGenerateTextParams) {
  * Usage:
  * ```typescript
  * import { generateText } from "ai";
- * import { LanternTracer, wrapGenerateText } from "@lantern-ai/sdk";
+ * import { LanternTracer, wrapGenerateText } from "@openlantern-ai/sdk";
  *
  * const tracedGenerateText = wrapGenerateText(generateText, tracer);
  * const result = await tracedGenerateText({ model: openai("gpt-4"), prompt: "Hello" });
@@ -203,7 +203,7 @@ export function wrapGenerateText(
  * Usage:
  * ```typescript
  * import { streamText } from "ai";
- * import { LanternTracer, wrapStreamText } from "@lantern-ai/sdk";
+ * import { LanternTracer, wrapStreamText } from "@openlantern-ai/sdk";
  *
  * const tracedStreamText = wrapStreamText(streamText, tracer);
  * const result = tracedStreamText({ model: openai("gpt-4"), prompt: "Hello" });

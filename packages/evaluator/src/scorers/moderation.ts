@@ -1,4 +1,4 @@
-import type { Scorer, EvalScore, Trace } from "@lantern-ai/sdk";
+import type { Scorer, EvalScore, Trace } from "@openlantern-ai/sdk";
 import type { JudgeLLM } from "../judge.js";
 import { parseJudgeResponse } from "../judge.js";
 

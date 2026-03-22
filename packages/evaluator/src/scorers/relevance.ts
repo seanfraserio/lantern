@@ -1,4 +1,4 @@
-import type { Scorer, EvalScore, Trace } from "@lantern-ai/sdk";
+import type { Scorer, EvalScore, Trace } from "@openlantern-ai/sdk";
 
 /**
  * Scores how relevant the agent's output is to the input.

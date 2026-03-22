@@ -1,5 +1,5 @@
-import type { LanternTracer } from "@lantern-ai/sdk";
-import type { SpanOutput } from "@lantern-ai/sdk";
+import type { LanternTracer } from "@openlantern-ai/sdk";
+import type { SpanOutput } from "@openlantern-ai/sdk";
 
 interface CohereChatResponse { text: string; meta?: { billedUnits?: { inputTokens?: number; outputTokens?: number } }; finish_reason?: string }
 interface CohereGenerateResponse { generations: Array<{ text: string }>; meta?: { billedUnits?: { inputTokens?: number; outputTokens?: number } } }

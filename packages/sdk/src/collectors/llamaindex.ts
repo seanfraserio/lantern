@@ -24,7 +24,7 @@ const EVENT_SPAN_TYPE: Record<string, SpanType> = {
  *
  * Usage:
  * ```typescript
- * import { LanternTracer, createLanternEventHandler } from "@lantern-ai/sdk";
+ * import { LanternTracer, createLanternEventHandler } from "@openlantern-ai/sdk";
  *
  * const handler = createLanternEventHandler(tracer, { agentName: "rag-agent" });
  * // Pass handler to LlamaIndex Settings.callbackManager

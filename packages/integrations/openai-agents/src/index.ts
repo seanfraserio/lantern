@@ -1,5 +1,5 @@
-import type { LanternTracer } from "@lantern-ai/sdk";
-import type { SpanOutput, SpanType } from "@lantern-ai/sdk";
+import type { LanternTracer } from "@openlantern-ai/sdk";
+import type { SpanOutput, SpanType } from "@openlantern-ai/sdk";
 
 interface AgentTraceData { traceId: string; name?: string; [key: string]: unknown }
 interface AgentSpanData { spanId: string; traceId: string; type?: string; model?: string; input?: unknown; output?: unknown; usage?: { inputTokens?: number; outputTokens?: number }; toolName?: string; [key: string]: unknown }

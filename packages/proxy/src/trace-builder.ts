@@ -7,7 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
-import type { Trace, Span } from "@lantern-ai/sdk";
+import type { Trace, Span } from "@openlantern-ai/sdk";
 
 const require = createRequire(import.meta.url);
 const { version: PKG_VERSION } = require("../package.json") as { version: string };

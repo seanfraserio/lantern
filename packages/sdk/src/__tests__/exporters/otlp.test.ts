@@ -158,7 +158,7 @@ describe("OtlpExporter", () => {
       const body = parseBody(fetchMock);
       const scopeSpans = body.resourceSpans[0].scopeSpans;
       expect(scopeSpans).toHaveLength(1);
-      expect(scopeSpans[0].scope.name).toBe("@lantern-ai/sdk");
+      expect(scopeSpans[0].scope.name).toBe("@openlantern-ai/sdk");
       expect(typeof scopeSpans[0].scope.version).toBe("string");
       expect(scopeSpans[0].scope.version.length).toBeGreaterThan(0);
     });

@@ -1,4 +1,4 @@
-import type { Baseline, EvalScore } from "@lantern-ai/sdk";
+import type { Baseline, EvalScore } from "@openlantern-ai/sdk";
 import { randomUUID } from "node:crypto";
 
 /**

@@ -1,5 +1,5 @@
-import type { LanternTracer } from "@lantern-ai/sdk";
-import type { SpanOutput, SpanType } from "@lantern-ai/sdk";
+import type { LanternTracer } from "@openlantern-ai/sdk";
+import type { SpanOutput, SpanType } from "@openlantern-ai/sdk";
 
 interface MastraSpanEvent {
   name?: string;

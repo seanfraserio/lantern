@@ -8,7 +8,7 @@ import { registerPromptRoutes } from "./routes/prompts.js";
 import { registerObservability, recordMetric } from "./lib/observability.js";
 import { loadConfig } from "./config.js";
 import type { LanternConfig } from "./config.js";
-import type { ITraceStore } from "@lantern-ai/sdk";
+import type { ITraceStore } from "@openlantern-ai/sdk";
 
 export interface IngestServerConfig {
   port: number;

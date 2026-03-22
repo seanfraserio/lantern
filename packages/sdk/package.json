@@ -1,5 +1,5 @@
 {
-  "name": "@lantern-ai/sdk",
+  "name": "@openlantern-ai/sdk",
   "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -11,6 +11,7 @@
       "require": "./dist/index.cjs"
     }
   },
+  "files": ["dist"],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "test": "vitest run",

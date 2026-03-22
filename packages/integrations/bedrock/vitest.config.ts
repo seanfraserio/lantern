@@ -4,7 +4,7 @@ import path from "path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@lantern-ai/sdk": path.resolve(__dirname, "../../sdk/src/index.ts"),
+      "@openlantern-ai/sdk": path.resolve(__dirname, "../../sdk/src/index.ts"),
     },
   },
 });

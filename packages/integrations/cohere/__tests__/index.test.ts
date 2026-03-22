@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { LanternTracer } from "@lantern-ai/sdk";
-import type { Trace } from "@lantern-ai/sdk";
+import { LanternTracer } from "@openlantern-ai/sdk";
+import type { Trace } from "@openlantern-ai/sdk";
 import { wrapCohereClient } from "../src/index.js";
 
 function makeMockExporter() {

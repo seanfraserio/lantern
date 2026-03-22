@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { ITraceStore } from "@lantern-ai/sdk";
+import type { ITraceStore } from "@openlantern-ai/sdk";
 
 export function registerHealthRoutes(app: FastifyInstance, store: ITraceStore): void {
   app.get("/health", async (_request, reply) => {

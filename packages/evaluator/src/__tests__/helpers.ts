@@ -1,4 +1,4 @@
-import type { Trace, Span } from "@lantern-ai/sdk";
+import type { Trace, Span } from "@openlantern-ai/sdk";
 
 /**
  * Build a minimal valid Trace, with sensible defaults that can be overridden.

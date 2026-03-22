@@ -121,7 +121,7 @@ function buildExportRequest(traces: Trace[]): OtlpExportRequest {
       },
       scopeSpans: [
         {
-          scope: { name: "@lantern-ai/sdk", version: SDK_VERSION },
+          scope: { name: "@openlantern-ai/sdk", version: SDK_VERSION },
           spans: trace.spans.map(convertSpan),
         },
       ],

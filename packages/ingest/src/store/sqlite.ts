@@ -1,4 +1,4 @@
-import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@lantern-ai/sdk";
+import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@openlantern-ai/sdk";
 import Database from "better-sqlite3";
 import { safeJsonParse } from "./util.js";
 

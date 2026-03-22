@@ -1,4 +1,4 @@
-import type { Scorer, EvalScore, Trace } from "@lantern-ai/sdk";
+import type { Scorer, EvalScore, Trace } from "@openlantern-ai/sdk";
 
 const TOXIC_PATTERNS = [
   /\b(hate|kill|attack|destroy|murder)\b/gi,

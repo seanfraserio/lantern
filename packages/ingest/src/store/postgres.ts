@@ -1,5 +1,5 @@
 import pg from "pg";
-import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@lantern-ai/sdk";
+import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@openlantern-ai/sdk";
 
 const { Pool } = pg;
 

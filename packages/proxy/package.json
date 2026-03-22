@@ -1,5 +1,5 @@
 {
-  "name": "@lantern-ai/proxy",
+  "name": "@openlantern-ai/proxy",
   "version": "0.3.0",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -11,6 +11,7 @@
       "require": "./dist/index.cjs"
     }
   },
+  "files": ["dist"],
   "scripts": {
     "build": "tsup src/index.ts src/cli.ts --format esm,cjs --dts",
     "test": "vitest run",
@@ -19,13 +20,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@lantern-ai/sdk": "workspace:*",
+    "@openlantern-ai/sdk": "workspace:*",
     "fastify": "^5.8.2"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^1.4.0"
-  },
-  "private": true
+  }
 }

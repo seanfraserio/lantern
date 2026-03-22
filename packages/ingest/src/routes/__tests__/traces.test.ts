@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Fastify from "fastify";
 import type { FastifyInstance } from "fastify";
 import { registerTraceRoutes } from "../../routes/traces.js";
-import type { ITraceStore, Trace, SourceSummary, TraceQueryFilter } from "@lantern-ai/sdk";
+import type { ITraceStore, Trace, SourceSummary, TraceQueryFilter } from "@openlantern-ai/sdk";
 
 function makeValidTrace(overrides?: Record<string, unknown>): Record<string, unknown> {
   return {

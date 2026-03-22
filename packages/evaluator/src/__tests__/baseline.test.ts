@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { BaselineManager } from "../baseline.js";
-import type { EvalScore } from "@lantern-ai/sdk";
+import type { EvalScore } from "@openlantern-ai/sdk";
 
 function makeScores(
   scorerName: string,
