@@ -211,10 +211,10 @@ export function wrapGenerateText(
  * ```
  */
 export function wrapStreamText(
-  streamTextFn: Function,
+  streamTextFn: (params: VercelGenerateTextParams) => VercelStreamTextResult,
   tracer: LanternTracer,
   opts?: { traceId?: string; agentName?: string }
-): Function {
+): (params: VercelGenerateTextParams) => VercelStreamTextResult {
   return (params: VercelGenerateTextParams): VercelStreamTextResult => {
     // Get or create a trace
     let traceId = opts?.traceId;
