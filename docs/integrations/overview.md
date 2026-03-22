@@ -6,23 +6,23 @@ Lantern integrates with 28 LLM providers and agent frameworks. Choose the integr
 
 | Provider | Language | Package | Method |
 |----------|----------|---------|--------|
-| [Anthropic](./anthropic.md) | TS, Python | `@lantern-ai/sdk` | SDK wrapper |
-| [OpenAI](./openai.md) | TS, Python | `@lantern-ai/sdk` | SDK wrapper |
-| [Google Gemini](./google.md) | TS | `@lantern-ai/sdk` | SDK wrapper |
-| [Mistral](./mistral.md) | TS | `@lantern-ai/mistral` | SDK wrapper |
-| [Cohere](./cohere.md) | TS | `@lantern-ai/cohere` | SDK wrapper |
-| [AWS Bedrock](./bedrock.md) | TS | `@lantern-ai/bedrock` | SDK wrapper |
-| [Groq, Together, Fireworks, DeepSeek, Perplexity, Ollama, OpenRouter, xAI, Cerebras, Novita](./openai-compatible.md) | TS | `@lantern-ai/sdk` | OpenAI-compatible |
+| [Anthropic](./anthropic.md) | TS, Python | `@openlantern-ai/sdk` | SDK wrapper |
+| [OpenAI](./openai.md) | TS, Python | `@openlantern-ai/sdk` | SDK wrapper |
+| [Google Gemini](./google.md) | TS | `@openlantern-ai/sdk` | SDK wrapper |
+| [Mistral](./mistral.md) | TS | `@openlantern-ai/mistral` | SDK wrapper |
+| [Cohere](./cohere.md) | TS | `@openlantern-ai/cohere` | SDK wrapper |
+| [AWS Bedrock](./bedrock.md) | TS | `@openlantern-ai/bedrock` | SDK wrapper |
+| [Groq, Together, Fireworks, DeepSeek, Perplexity, Ollama, OpenRouter, xAI, Cerebras, Novita](./openai-compatible.md) | TS | `@openlantern-ai/sdk` | OpenAI-compatible |
 
 ## Agent Frameworks
 
 | Framework | Language | Package | Method |
 |-----------|----------|---------|--------|
-| [LangChain](./langchain.md) | TS | `@lantern-ai/sdk` | Callback handler |
-| [LlamaIndex](./llamaindex.md) | TS | `@lantern-ai/sdk` | Event handler |
-| [Vercel AI SDK](./vercel-ai.md) | TS | `@lantern-ai/sdk` | Function wrapper |
-| [OpenAI Agents SDK](./openai-agents.md) | TS | `@lantern-ai/openai-agents` | Trace processor |
-| [Mastra](./mastra.md) | TS | `@lantern-ai/mastra` | Telemetry hook |
+| [LangChain](./langchain.md) | TS | `@openlantern-ai/sdk` | Callback handler |
+| [LlamaIndex](./llamaindex.md) | TS | `@openlantern-ai/sdk` | Event handler |
+| [Vercel AI SDK](./vercel-ai.md) | TS | `@openlantern-ai/sdk` | Function wrapper |
+| [OpenAI Agents SDK](./openai-agents.md) | TS | `@openlantern-ai/openai-agents` | Trace processor |
+| [Mastra](./mastra.md) | TS | `@openlantern-ai/mastra` | Telemetry hook |
 | [CrewAI](./crewai.md) | Python | `lantern-ai[crewai]` | Lifecycle handler |
 | [Pydantic AI](./pydantic-ai.md) | Python | `lantern-ai[pydantic-ai]` | Lifecycle handler |
 | [AutoGen](./autogen.md) | Python | `lantern-ai[autogen]` | Message hooks |
@@ -34,7 +34,7 @@ Lantern integrates with 28 LLM providers and agent frameworks. Choose the integr
 
 | Integration | Language | Package | Method |
 |-------------|----------|---------|--------|
-| [MCP](./mcp.md) | TS | `@lantern-ai/sdk` | Tool call wrapper |
+| [MCP](./mcp.md) | TS | `@openlantern-ai/sdk` | Tool call wrapper |
 
 ## Using the LLM Proxy
 

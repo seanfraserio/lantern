@@ -5,21 +5,21 @@ Auto-instrument AWS Bedrock API calls with full tracing, token counting, and cos
 ## Installation
 
 ```bash
-npm install @lantern-ai/bedrock @aws-sdk/client-bedrock-runtime
+npm install @openlantern-ai/bedrock @aws-sdk/client-bedrock-runtime
 ```
 
-`@lantern-ai/bedrock` has a peer dependency on `@lantern-ai/sdk` — install it if you haven't already:
+`@openlantern-ai/bedrock` has a peer dependency on `@openlantern-ai/sdk` — install it if you haven't already:
 
 ```bash
-npm install @lantern-ai/sdk
+npm install @openlantern-ai/sdk
 ```
 
 ## Setup
 
 ```typescript
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
-import { LanternTracer, LanternExporter } from "@lantern-ai/sdk";
-import { wrapBedrockClient } from "@lantern-ai/bedrock";
+import { LanternTracer, LanternExporter } from "@openlantern-ai/sdk";
+import { wrapBedrockClient } from "@openlantern-ai/bedrock";
 
 const tracer = new LanternTracer({
   serviceName: "my-agent",

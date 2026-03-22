@@ -20,7 +20,7 @@ Get from zero to seeing your first trace in under five minutes. Pick **one** pat
 ```bash
 mkdir lantern-quickstart && cd lantern-quickstart
 npm init -y
-npm install @lantern-ai/sdk @anthropic-ai/sdk
+npm install @openlantern-ai/sdk @anthropic-ai/sdk
 ```
 
 ### 2. Set your environment variables
@@ -38,7 +38,7 @@ import {
   LanternTracer,
   LanternExporter,
   wrapAnthropicClient,
-} from "@lantern-ai/sdk";
+} from "@openlantern-ai/sdk";
 
 // 1. Create a tracer that exports to Lantern
 const tracer = new LanternTracer({
@@ -249,7 +249,7 @@ Open [openlanternai-dashboard.pages.dev](https://openlanternai-dashboard.pages.d
 ```bash
 mkdir lantern-quickstart && cd lantern-quickstart
 npm init -y
-npm install @lantern-ai/sdk openai
+npm install @openlantern-ai/sdk openai
 ```
 
 ### 2. Set your environment variables
@@ -267,7 +267,7 @@ import {
   LanternTracer,
   LanternExporter,
   wrapOpenAICompatClient,
-} from "@lantern-ai/sdk";
+} from "@openlantern-ai/sdk";
 
 // 1. Create a tracer that exports to Lantern
 const tracer = new LanternTracer({
@@ -325,7 +325,7 @@ Open [openlanternai-dashboard.pages.dev](https://openlanternai-dashboard.pages.d
 ```bash
 mkdir lantern-quickstart && cd lantern-quickstart
 npm init -y
-npm install @lantern-ai/sdk @langchain/openai @langchain/core
+npm install @openlantern-ai/sdk @langchain/openai @langchain/core
 ```
 
 ### 2. Set your environment variables
@@ -343,7 +343,7 @@ import {
   LanternTracer,
   LanternExporter,
   createLanternCallbackHandler,
-} from "@lantern-ai/sdk";
+} from "@openlantern-ai/sdk";
 
 // 1. Create a tracer
 const tracer = new LanternTracer({

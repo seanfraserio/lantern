@@ -192,9 +192,9 @@ Lantern has an open-source core and an enterprise package:
 
 The following packages are open source:
 
-- `@lantern-ai/sdk` -- TypeScript SDK
-- `@lantern-ai/ingest` -- Ingest server
-- `@lantern-ai/proxy` -- LLM Proxy
+- `@openlantern-ai/sdk` -- TypeScript SDK
+- `@openlantern-ai/ingest` -- Ingest server
+- `@openlantern-ai/proxy` -- LLM Proxy
 - `lantern-ai` -- Python SDK
 
 The OSS core provides trace ingestion, storage (SQLite or PostgreSQL), querying,
@@ -203,7 +203,7 @@ Compose.
 
 ### Enterprise package
 
-The `@lantern-ai/enterprise` package provides:
+The `@openlantern-ai/enterprise` package provides:
 
 - **PII detection and redaction** -- `PiiDetector` class for scanning text
 - **Compliance exports** -- `ComplianceExporter` for SOC 2, HIPAA, and GDPR reports
@@ -211,7 +211,7 @@ The `@lantern-ai/enterprise` package provides:
 - **Team management** -- `TeamManager` for RBAC with agent scope restrictions
 - **Managed cloud** -- `ManagedService` for hosted deployments
 
-Enterprise features are loaded dynamically via `import("@lantern-ai/enterprise")`.
+Enterprise features are loaded dynamically via `import("@openlantern-ai/enterprise")`.
 When the package is not installed, enterprise endpoints return `501 Not Available`.
 This means the API server's route structure is always the same -- the enterprise
 package simply enables the implementations behind those routes.

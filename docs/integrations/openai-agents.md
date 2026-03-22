@@ -5,16 +5,16 @@ Trace agent runs, LLM generations, tool calls, and handoffs from the OpenAI Agen
 ## Installation
 
 ```bash
-npm install @lantern-ai/sdk @lantern-ai/openai-agents @openai/agents
+npm install @openlantern-ai/sdk @openlantern-ai/openai-agents @openai/agents
 ```
 
-The OpenAI Agents integration is a separate package (`@lantern-ai/openai-agents`) because it depends on `@openai/agents` as a peer dependency.
+The OpenAI Agents integration is a separate package (`@openlantern-ai/openai-agents`) because it depends on `@openai/agents` as a peer dependency.
 
 ## Setup
 
 ```typescript
-import { LanternTracer } from "@lantern-ai/sdk";
-import { createLanternTraceProcessor } from "@lantern-ai/openai-agents";
+import { LanternTracer } from "@openlantern-ai/sdk";
+import { createLanternTraceProcessor } from "@openlantern-ai/openai-agents";
 
 const tracer = new LanternTracer({
   apiKey: process.env.LANTERN_API_KEY,

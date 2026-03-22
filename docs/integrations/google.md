@@ -5,14 +5,14 @@ Auto-instrument Google Generative AI (Gemini) calls with full tracing, token cou
 ## Installation
 
 ```bash
-npm install @lantern-ai/sdk @google/generative-ai
+npm install @openlantern-ai/sdk @google/generative-ai
 ```
 
 ## Setup
 
 ```typescript
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { LanternTracer, LanternExporter, wrapGoogleGenerativeModel } from "@lantern-ai/sdk";
+import { LanternTracer, LanternExporter, wrapGoogleGenerativeModel } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   serviceName: "my-agent",

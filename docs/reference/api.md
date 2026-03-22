@@ -1156,7 +1156,7 @@ curl -X PUT http://localhost:4200/teams/550e8400-e29b-41d4-a716-446655440000/sco
 
 ## PII
 
-PII endpoints require the `@lantern-ai/enterprise` package. They return
+PII endpoints require the `@openlantern-ai/enterprise` package. They return
 `501 Not Available` when the enterprise package is not installed.
 
 ### POST /pii/scan
@@ -1291,7 +1291,7 @@ curl -X POST http://localhost:4200/pii/scan-trace/550e8400-e29b-41d4-a716-446655
 
 ## Compliance
 
-Compliance endpoints require the `@lantern-ai/enterprise` package.
+Compliance endpoints require the `@openlantern-ai/enterprise` package.
 
 ### GET /compliance/frameworks
 

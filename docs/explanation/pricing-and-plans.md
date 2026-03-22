@@ -277,7 +277,7 @@ server in single-tenant mode does not enforce usage limits.
 
 All features available in the open-source packages are usable without
 restriction. Enterprise features (PII, compliance, alerts, teams) require the
-`@lantern-ai/enterprise` package, which is licensed separately.
+`@openlantern-ai/enterprise` package, which is licensed separately.
 
 ### Managed (multi-tenant)
 

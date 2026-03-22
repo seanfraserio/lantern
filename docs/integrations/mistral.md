@@ -5,21 +5,21 @@ Auto-instrument Mistral AI API calls with full tracing, token counting, and cost
 ## Installation
 
 ```bash
-npm install @lantern-ai/mistral @mistralai/mistralai
+npm install @openlantern-ai/mistral @mistralai/mistralai
 ```
 
-`@lantern-ai/mistral` has a peer dependency on `@lantern-ai/sdk` — install it if you haven't already:
+`@openlantern-ai/mistral` has a peer dependency on `@openlantern-ai/sdk` — install it if you haven't already:
 
 ```bash
-npm install @lantern-ai/sdk
+npm install @openlantern-ai/sdk
 ```
 
 ## Setup
 
 ```typescript
 import { Mistral } from "@mistralai/mistralai";
-import { LanternTracer, LanternExporter } from "@lantern-ai/sdk";
-import { wrapMistralClient } from "@lantern-ai/mistral";
+import { LanternTracer, LanternExporter } from "@openlantern-ai/sdk";
+import { wrapMistralClient } from "@openlantern-ai/mistral";
 
 const tracer = new LanternTracer({
   serviceName: "my-agent",

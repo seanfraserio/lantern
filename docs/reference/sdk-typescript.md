@@ -1,10 +1,10 @@
 # TypeScript SDK Reference
 
-Reference for `@lantern-ai/sdk`, the TypeScript SDK for Lantern agent
+Reference for `@openlantern-ai/sdk`, the TypeScript SDK for Lantern agent
 observability. The SDK provides trace and span management, multiple exporters,
 and auto-instrumentation wrappers for Anthropic, OpenAI, and MCP clients.
 
-**Package:** `@lantern-ai/sdk`
+**Package:** `@openlantern-ai/sdk`
 **Source:** `packages/sdk/`
 
 ---
@@ -17,7 +17,7 @@ exports them via the configured exporter.
 ### Constructor
 
 ```typescript
-import { LanternTracer } from "@lantern-ai/sdk";
+import { LanternTracer } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   serviceName: "my-service",
@@ -184,7 +184,7 @@ Exports traces to a Lantern ingest backend via HTTP POST. Supports exponential
 backoff retry on 5xx errors and network failures.
 
 ```typescript
-import { LanternExporter } from "@lantern-ai/sdk";
+import { LanternExporter } from "@openlantern-ai/sdk";
 
 const exporter = new LanternExporter({
   endpoint: "https://ingest.openlanternai.com",
@@ -215,7 +215,7 @@ const exporter = new LanternExporter({
 Exports traces to stdout. Useful for development and debugging.
 
 ```typescript
-import { ConsoleExporter } from "@lantern-ai/sdk";
+import { ConsoleExporter } from "@openlantern-ai/sdk";
 
 const exporter = new ConsoleExporter({ verbose: true });
 ```
@@ -230,7 +230,7 @@ OpenTelemetry-compatible exporter. Converts Lantern traces to OTLP JSON format
 and exports via HTTP POST to an OTLP collector.
 
 ```typescript
-import { OtlpExporter } from "@lantern-ai/sdk";
+import { OtlpExporter } from "@openlantern-ai/sdk";
 
 const exporter = new OtlpExporter({
   endpoint: "https://otlp.example.com",
@@ -268,7 +268,7 @@ automatically create `llm_call` spans with full input, output, and token data.
 
 ```typescript
 import Anthropic from "@anthropic-ai/sdk";
-import { LanternTracer, LanternExporter, wrapAnthropicClient } from "@lantern-ai/sdk";
+import { LanternTracer, LanternExporter, wrapAnthropicClient } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({ ... });
 const client = wrapAnthropicClient(new Anthropic(), tracer);
@@ -310,7 +310,7 @@ automatically create `llm_call` spans.
 
 ```typescript
 import OpenAI from "openai";
-import { LanternTracer, LanternExporter, wrapOpenAIClient } from "@lantern-ai/sdk";
+import { LanternTracer, LanternExporter, wrapOpenAIClient } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({ ... });
 const client = wrapOpenAIClient(new OpenAI(), tracer);
@@ -351,7 +351,7 @@ Monkey-patches an MCP client's `callTool()` method to automatically create
 
 ```typescript
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { LanternTracer, wrapMcpClient } from "@lantern-ai/sdk";
+import { LanternTracer, wrapMcpClient } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({ ... });
 const mcpClient = wrapMcpClient(new Client(...), tracer);

@@ -6,7 +6,7 @@ Auto-instrument Anthropic Claude API calls with full tracing, token counting, an
 
 **TypeScript:**
 ```bash
-npm install @lantern-ai/sdk @anthropic-ai/sdk
+npm install @openlantern-ai/sdk @anthropic-ai/sdk
 ```
 
 **Python:**
@@ -19,7 +19,7 @@ pip install lantern-ai anthropic
 **TypeScript:**
 ```typescript
 import Anthropic from "@anthropic-ai/sdk";
-import { LanternTracer, LanternExporter, wrapAnthropicClient } from "@lantern-ai/sdk";
+import { LanternTracer, LanternExporter, wrapAnthropicClient } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   serviceName: "my-agent",

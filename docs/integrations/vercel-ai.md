@@ -5,16 +5,16 @@ Trace `generateText()` and `streamText()` calls from the Vercel AI SDK with zero
 ## Installation
 
 ```bash
-npm install @lantern-ai/sdk ai
+npm install @openlantern-ai/sdk ai
 ```
 
-No additional integration package is needed — the Vercel AI collectors are included in `@lantern-ai/sdk`.
+No additional integration package is needed — the Vercel AI collectors are included in `@openlantern-ai/sdk`.
 
 ## Setup
 
 ```typescript
 import { generateText, streamText } from "ai";
-import { LanternTracer, wrapGenerateText, wrapStreamText } from "@lantern-ai/sdk";
+import { LanternTracer, wrapGenerateText, wrapStreamText } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   apiKey: process.env.LANTERN_API_KEY,

@@ -5,21 +5,21 @@ Auto-instrument Cohere API calls with full tracing, token counting, and cost est
 ## Installation
 
 ```bash
-npm install @lantern-ai/cohere cohere-ai
+npm install @openlantern-ai/cohere cohere-ai
 ```
 
-`@lantern-ai/cohere` has a peer dependency on `@lantern-ai/sdk` — install it if you haven't already:
+`@openlantern-ai/cohere` has a peer dependency on `@openlantern-ai/sdk` — install it if you haven't already:
 
 ```bash
-npm install @lantern-ai/sdk
+npm install @openlantern-ai/sdk
 ```
 
 ## Setup
 
 ```typescript
 import { CohereClient } from "cohere-ai";
-import { LanternTracer, LanternExporter } from "@lantern-ai/sdk";
-import { wrapCohereClient } from "@lantern-ai/cohere";
+import { LanternTracer, LanternExporter } from "@openlantern-ai/sdk";
+import { wrapCohereClient } from "@openlantern-ai/cohere";
 
 const tracer = new LanternTracer({
   serviceName: "my-agent",

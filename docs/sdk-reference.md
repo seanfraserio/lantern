@@ -27,7 +27,7 @@ new LanternTracer(config: TracerConfig)
 
 ## Auto-instrumentation
 
-### Core SDK (`@lantern-ai/sdk`)
+### Core SDK (`@openlantern-ai/sdk`)
 
 These collectors ship with the core SDK — no extra packages needed.
 
@@ -69,23 +69,23 @@ These collectors live in separate packages with peer dependencies on their respe
 
 #### wrapMistralClient(client, tracer, opts?)
 
-From `@lantern-ai/mistral`. Instruments `client.chat.complete()`. See [Mistral integration](./integrations/mistral.md).
+From `@openlantern-ai/mistral`. Instruments `client.chat.complete()`. See [Mistral integration](./integrations/mistral.md).
 
 #### wrapCohereClient(client, tracer, opts?)
 
-From `@lantern-ai/cohere`. Instruments `client.chat()` and `client.generate()`. See [Cohere integration](./integrations/cohere.md).
+From `@openlantern-ai/cohere`. Instruments `client.chat()` and `client.generate()`. See [Cohere integration](./integrations/cohere.md).
 
 #### wrapBedrockClient(client, tracer, opts?)
 
-From `@lantern-ai/bedrock`. Instruments `client.send()` for ConverseCommand and InvokeModelCommand. See [Bedrock integration](./integrations/bedrock.md).
+From `@openlantern-ai/bedrock`. Instruments `client.send()` for ConverseCommand and InvokeModelCommand. See [Bedrock integration](./integrations/bedrock.md).
 
 #### createLanternTraceProcessor(tracer, opts?)
 
-From `@lantern-ai/openai-agents`. Returns a trace processor for the OpenAI Agents SDK. See [OpenAI Agents integration](./integrations/openai-agents.md).
+From `@openlantern-ai/openai-agents`. Returns a trace processor for the OpenAI Agents SDK. See [OpenAI Agents integration](./integrations/openai-agents.md).
 
 #### createLanternMastraHook(tracer, opts?)
 
-From `@lantern-ai/mastra`. Returns a telemetry hook for Mastra. See [Mastra integration](./integrations/mastra.md).
+From `@openlantern-ai/mastra`. Returns a telemetry hook for Mastra. See [Mastra integration](./integrations/mastra.md).
 
 ### Shared Utilities
 

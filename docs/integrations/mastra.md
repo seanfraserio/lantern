@@ -5,16 +5,16 @@ Trace Mastra agent LLM calls, tool executions, and workflow steps using a teleme
 ## Installation
 
 ```bash
-npm install @lantern-ai/sdk @lantern-ai/mastra mastra
+npm install @openlantern-ai/sdk @openlantern-ai/mastra mastra
 ```
 
-The Mastra integration is a separate package (`@lantern-ai/mastra`) because it depends on `mastra` as a peer dependency.
+The Mastra integration is a separate package (`@openlantern-ai/mastra`) because it depends on `mastra` as a peer dependency.
 
 ## Setup
 
 ```typescript
-import { LanternTracer } from "@lantern-ai/sdk";
-import { createLanternMastraHook } from "@lantern-ai/mastra";
+import { LanternTracer } from "@openlantern-ai/sdk";
+import { createLanternMastraHook } from "@openlantern-ai/mastra";
 
 const tracer = new LanternTracer({
   apiKey: process.env.LANTERN_API_KEY,

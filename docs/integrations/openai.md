@@ -6,7 +6,7 @@ Auto-instrument OpenAI API calls with full tracing, token counting, and cost est
 
 **TypeScript:**
 ```bash
-npm install @lantern-ai/sdk openai
+npm install @openlantern-ai/sdk openai
 ```
 
 **Python:**
@@ -19,7 +19,7 @@ pip install lantern-ai openai
 **TypeScript:**
 ```typescript
 import OpenAI from "openai";
-import { LanternTracer, LanternExporter, wrapOpenAIClient } from "@lantern-ai/sdk";
+import { LanternTracer, LanternExporter, wrapOpenAIClient } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   serviceName: "my-agent",

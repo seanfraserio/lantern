@@ -9,14 +9,14 @@ AI agents make opaque decisions across multiple reasoning steps, tool calls, and
 ## Install
 
 ```bash
-npm install @lantern-ai/sdk
+npm install @openlantern-ai/sdk
 ```
 
 ## Quickstart
 
 ```typescript
 import Anthropic from "@anthropic-ai/sdk";
-import { LanternTracer, ConsoleExporter, wrapAnthropicClient } from "@lantern-ai/sdk";
+import { LanternTracer, ConsoleExporter, wrapAnthropicClient } from "@openlantern-ai/sdk";
 
 // 1. Create tracer
 const tracer = new LanternTracer({

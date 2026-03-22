@@ -5,15 +5,15 @@ Trace LangChain LLM calls, tool invocations, chain executions, and retriever que
 ## Installation
 
 ```bash
-npm install @lantern-ai/sdk langchain @langchain/core
+npm install @openlantern-ai/sdk langchain @langchain/core
 ```
 
-No additional integration package is needed — the LangChain collector is included in `@lantern-ai/sdk`.
+No additional integration package is needed — the LangChain collector is included in `@openlantern-ai/sdk`.
 
 ## Setup
 
 ```typescript
-import { LanternTracer, createLanternCallbackHandler } from "@lantern-ai/sdk";
+import { LanternTracer, createLanternCallbackHandler } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   apiKey: process.env.LANTERN_API_KEY,

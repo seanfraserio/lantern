@@ -5,15 +5,15 @@ Trace LlamaIndex LLM calls, retrieval queries, embeddings, and custom events thr
 ## Installation
 
 ```bash
-npm install @lantern-ai/sdk llamaindex
+npm install @openlantern-ai/sdk llamaindex
 ```
 
-No additional integration package is needed — the LlamaIndex collector is included in `@lantern-ai/sdk`.
+No additional integration package is needed — the LlamaIndex collector is included in `@openlantern-ai/sdk`.
 
 ## Setup
 
 ```typescript
-import { LanternTracer, createLanternEventHandler } from "@lantern-ai/sdk";
+import { LanternTracer, createLanternEventHandler } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   apiKey: process.env.LANTERN_API_KEY,

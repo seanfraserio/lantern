@@ -5,14 +5,14 @@ Trace any provider that uses the OpenAI API format with a single collector. One 
 ## Installation
 
 ```bash
-npm install @lantern-ai/sdk openai
+npm install @openlantern-ai/sdk openai
 ```
 
 ## Setup
 
 ```typescript
 import OpenAI from "openai";
-import { LanternTracer, LanternExporter, wrapOpenAICompatClient } from "@lantern-ai/sdk";
+import { LanternTracer, LanternExporter, wrapOpenAICompatClient } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   serviceName: "my-agent",

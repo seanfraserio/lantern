@@ -5,16 +5,16 @@ Trace all `callTool()` invocations on an MCP client. The wrapper intercepts tool
 ## Installation
 
 ```bash
-npm install @lantern-ai/sdk @modelcontextprotocol/sdk
+npm install @openlantern-ai/sdk @modelcontextprotocol/sdk
 ```
 
-No additional integration package is needed — the MCP collector is included in `@lantern-ai/sdk`.
+No additional integration package is needed — the MCP collector is included in `@openlantern-ai/sdk`.
 
 ## Setup
 
 ```typescript
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { LanternTracer, wrapMcpClient } from "@lantern-ai/sdk";
+import { LanternTracer, wrapMcpClient } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   apiKey: process.env.LANTERN_API_KEY,
