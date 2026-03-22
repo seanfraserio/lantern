@@ -418,6 +418,181 @@ Returns the same client instance.
 
 ---
 
+### create_lantern_crewai_handler(tracer, *, agent_name=None)
+
+Creates a lifecycle handler for CrewAI crews. Install: `pip install lantern-ai[crewai]`.
+
+```python
+from lantern_ai import LanternTracer
+from lantern_ai.collectors.crewai import create_lantern_crewai_handler
+
+tracer = LanternTracer(...)
+handler = create_lantern_crewai_handler(tracer, agent_name="my-crew")
+
+# Pass as step_callback to your Crew
+crew = Crew(agents=[...], tasks=[...], step_callback=handler)
+crew.kickoff()
+handler.finish()
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tracer` | `LanternTracer` | Tracer to record spans on |
+| `agent_name` | str or None | Agent name for traces (default `"crewai-agent"`) |
+
+**Returns:** `LanternCrewAIHandler` with methods `on_task_start/end`, `on_llm_start/end`, `on_tool_start/end`, and `finish()`.
+
+---
+
+### create_lantern_pydantic_handler(tracer, *, agent_name=None)
+
+Creates a lifecycle handler for Pydantic AI agents. Install: `pip install lantern-ai[pydantic-ai]`.
+
+```python
+from lantern_ai import LanternTracer
+from lantern_ai.collectors.pydantic_ai import create_lantern_pydantic_handler
+
+tracer = LanternTracer(...)
+handler = create_lantern_pydantic_handler(tracer)
+
+# Register with your Pydantic AI agent
+agent = Agent(model="openai:gpt-4o", instrument=handler)
+result = await agent.run("Hello")
+handler.finish()
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tracer` | `LanternTracer` | Tracer to record spans on |
+| `agent_name` | str or None | Agent name for traces (default `"pydantic-ai-agent"`) |
+
+**Returns:** `LanternPydanticHandler` with methods `on_llm_start/end`, `on_tool_start/end`, `on_step()`, and `finish()`.
+
+---
+
+### create_lantern_autogen_handler(tracer, *, agent_name=None)
+
+Creates a message hook handler for AutoGen/AG2 conversations. Install: `pip install lantern-ai[autogen]`.
+
+```python
+from lantern_ai import LanternTracer
+from lantern_ai.collectors.autogen import create_lantern_autogen_handler
+
+tracer = LanternTracer(...)
+handler = create_lantern_autogen_handler(tracer)
+
+# Register with AutoGen
+groupchat = autogen.GroupChat(agents=[...], messages=[])
+manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+manager.register_hook("on_message", handler.on_message)
+manager.initiate_chat(user_proxy, message="Hello")
+handler.finish()
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tracer` | `LanternTracer` | Tracer to record spans on |
+| `agent_name` | str or None | Agent name for traces (default `"autogen-agent"`) |
+
+**Returns:** `LanternAutoGenHandler` with methods `on_message()`, `on_llm_start/end`, `on_tool_start/end`, and `finish()`.
+
+---
+
+### create_lantern_haystack_handler(tracer, *, agent_name=None)
+
+Creates a pipeline callback handler for Haystack pipelines. Install: `pip install lantern-ai[haystack]`.
+
+```python
+from lantern_ai import LanternTracer
+from lantern_ai.collectors.haystack import create_lantern_haystack_handler
+
+tracer = LanternTracer(...)
+handler = create_lantern_haystack_handler(tracer)
+
+# Register with your Haystack pipeline
+pipeline = Pipeline()
+pipeline.add_component("llm", OpenAIGenerator())
+pipeline.add_listener(handler)
+result = pipeline.run({"llm": {"prompt": "Hello"}})
+handler.finish()
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tracer` | `LanternTracer` | Tracer to record spans on |
+| `agent_name` | str or None | Agent name for traces (default `"haystack-agent"`) |
+
+**Returns:** `LanternHaystackHandler` with methods `on_pipeline_start/end`, `on_component_start/end`, and `finish()`.
+
+---
+
+### create_lantern_dspy_handler(tracer, *, agent_name=None)
+
+Creates a module tracing handler for DSPy programs. Install: `pip install lantern-ai[dspy]`.
+
+```python
+from lantern_ai import LanternTracer
+from lantern_ai.collectors.dspy import create_lantern_dspy_handler
+
+tracer = LanternTracer(...)
+handler = create_lantern_dspy_handler(tracer)
+
+# Register with DSPy
+import dspy
+dspy.configure(lm=dspy.LM("openai/gpt-4o"), trace=[handler])
+program = dspy.ChainOfThought("question -> answer")
+result = program(question="What is 2+2?")
+handler.finish()
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tracer` | `LanternTracer` | Tracer to record spans on |
+| `agent_name` | str or None | Agent name for traces (default `"dspy-agent"`) |
+
+**Returns:** `LanternDSPyHandler` with methods `on_predict_start/end`, `on_lm_start/end`, and `finish()`.
+
+---
+
+### create_lantern_smolagents_handler(tracer, *, agent_name=None)
+
+Creates a step callback handler for Smolagents. Install: `pip install lantern-ai[smolagents]`.
+
+```python
+from lantern_ai import LanternTracer
+from lantern_ai.collectors.smolagents import create_lantern_smolagents_handler
+
+tracer = LanternTracer(...)
+handler = create_lantern_smolagents_handler(tracer)
+
+# Register with your Smolagents agent
+from smolagents import CodeAgent, HfApiModel
+agent = CodeAgent(tools=[], model=HfApiModel(), step_callbacks=[handler])
+result = agent.run("What is 2+2?")
+handler.finish()
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `tracer` | `LanternTracer` | Tracer to record spans on |
+| `agent_name` | str or None | Agent name for traces (default `"smolagents-agent"`) |
+
+**Returns:** `LanternSmolagentsHandler` with methods `on_step_start/end`, `on_llm_call/end`, `on_tool_start/end`, and `finish()`.
+
+---
+
 ## Data Types
 
 All types use snake_case fields internally and serialise to camelCase via

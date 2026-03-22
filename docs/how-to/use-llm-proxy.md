@@ -7,7 +7,7 @@ The Lantern LLM Proxy instruments any agent with zero code changes. It sits betw
 ## How it works
 
 ```
-Your Agent  ──>  Lantern Proxy  ──>  Anthropic / OpenAI API
+Your Agent  ──>  Lantern Proxy  ──>  Anthropic / OpenAI / Mistral / Cohere API
                       │
                       └──>  Lantern Ingest (traces)
 ```
@@ -32,7 +32,19 @@ export ANTHROPIC_BASE_URL="https://proxy.openlanternai.com/anthropic"
 export OPENAI_BASE_URL="https://proxy.openlanternai.com/openai"
 ```
 
-Both the Anthropic and OpenAI SDKs respect these environment variables automatically.
+**Mistral:**
+
+```bash
+export MISTRAL_API_URL="https://proxy.openlanternai.com/mistral"
+```
+
+**Cohere:**
+
+```bash
+export CO_API_URL="https://proxy.openlanternai.com/cohere"
+```
+
+The Anthropic and OpenAI SDKs respect their respective environment variables automatically. For Mistral and Cohere, you may need to set the base URL in the client constructor directly.
 
 ---
 
@@ -137,21 +149,30 @@ This is how the trace appears in the dashboard — use it to distinguish between
 
 ## Provider routing
 
-The proxy determines which upstream API to call based on the URL path:
+The proxy determines which upstream API to call based on the URL path prefix:
 
 | Path prefix | Upstream |
 |-------------|----------|
 | `/anthropic/*` | `api.anthropic.com` |
 | `/openai/*` | `api.openai.com` |
+| `/mistral/*` | `api.mistral.ai` |
+| `/cohere/*` | `api.cohere.com` |
 
-Alternatively, use the `X-Lantern-Provider` header with a plain path:
+A path prefix is **required** for routing. Header-only routing has been removed.
+
+### X-Lantern-Provider header
+
+The `X-Lantern-Provider` header is a **metadata-only** override — it sets the provider label in trace metadata but does **not** affect routing. This is useful when routing through `/openai/*` but using an OpenAI-compatible provider like Groq:
 
 ```bash
-curl -X POST https://proxy.openlanternai.com/v1/messages \
-  -H "X-Lantern-Provider: anthropic" \
+curl -X POST https://proxy.openlanternai.com/openai/v1/chat/completions \
   -H "X-Lantern-Api-Key: $LANTERN_API_KEY" \
-  ...
+  -H "X-Lantern-Provider: groq" \
+  -H "Authorization: Bearer $GROQ_API_KEY" \
+  -d '{"model":"llama-3.1-70b-versatile","messages":[{"role":"user","content":"Hello"}]}'
 ```
+
+In this example, the request routes through `/openai/*` but the trace is labelled as `groq` in the dashboard.
 
 ---
 
@@ -194,6 +215,6 @@ Then point your clients at `http://localhost:4300/anthropic` or `http://localhos
 |--------|----------|-------------|
 | `X-Lantern-Api-Key` | Yes | Your Lantern API key for trace ingestion |
 | `X-Lantern-Service` | No | Custom service name for the trace (default: provider name) |
-| `X-Lantern-Provider` | No | Explicit provider selection (`anthropic` or `openai`) when not using path-based routing |
+| `X-Lantern-Provider` | No | Provider label override for trace metadata (does not affect routing) |
 
 All `X-Lantern-*` headers are stripped before the request is forwarded to the upstream API.
