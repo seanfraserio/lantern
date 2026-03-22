@@ -30,8 +30,11 @@ interface PricePer1K {
 const DEFAULT_PRICING: PricePer1K = { input: 0.001, output: 0.002 };
 
 /**
- * Pricing in USD per 1K tokens.
+ * Pricing in USD per 1K tokens (NOT per 1M).
+ * Provider pricing pages typically quote per-1M — divide by 1000 before adding here.
+ * Example: Claude Sonnet at $3/1M input → 0.003 per 1K.
  * Keys can be exact model IDs or provider:model for provider-specific pricing.
+ * Last verified: 2026-03-21.
  */
 const MODEL_PRICING: Record<string, PricePer1K> = {
   // Claude

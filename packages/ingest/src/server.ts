@@ -91,7 +91,11 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   const app = Fastify({
     logger: { level: yamlConfig.server.log_level },
     bodyLimit: 1_048_576,
-    genReqId: (req) => (req.headers["x-request-id"] as string) ?? randomUUID(),
+    genReqId: (req) => {
+      const raw = req.headers["x-request-id"];
+      const id = typeof raw === "string" && /^[a-zA-Z0-9._-]{1,128}$/.test(raw) ? raw : undefined;
+      return id ?? randomUUID();
+    },
   });
 
   await app.register(compress, { global: true });
