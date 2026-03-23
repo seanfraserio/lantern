@@ -9,8 +9,11 @@ describe("lantern --version", () => {
     expect(pkg.version).toMatch(/^\d+\.\d+\.\d+/);
   });
 
-  it("version is 0.2.1", () => {
-    expect(pkg.version).toBe("0.2.1");
+  it("version matches package.json", () => {
+    // Read the version at runtime to avoid hardcoding
+    const require2 = createRequire(import.meta.url);
+    const freshPkg = require2("../../package.json") as { version: string };
+    expect(pkg.version).toBe(freshPkg.version);
   });
 
   it("cli.ts checks process.argv for --version", async () => {
