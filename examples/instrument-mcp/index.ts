@@ -2,7 +2,7 @@
  * Example: Instrument MCP tool calls with Lantern.
  */
 
-import { LanternTracer, ConsoleExporter } from "@lantern-ai/sdk";
+import { LanternTracer, ConsoleExporter } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   serviceName: "mcp-agent",

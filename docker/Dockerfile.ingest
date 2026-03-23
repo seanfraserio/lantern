@@ -8,11 +8,11 @@ COPY packages/sdk/ packages/sdk/
 COPY packages/ingest/ packages/ingest/
 
 # Install with shamefully-hoist so all deps are flat in node_modules
-RUN pnpm install --frozen-lockfile --filter @lantern-ai/ingest... --shamefully-hoist
+RUN pnpm install --frozen-lockfile --filter @openlantern-ai/ingest... --shamefully-hoist
 
 # Build in order
-RUN pnpm --filter @lantern-ai/sdk run build
-RUN pnpm --filter @lantern-ai/ingest run build
+RUN pnpm --filter @openlantern-ai/sdk run build
+RUN pnpm --filter @openlantern-ai/ingest run build
 
 # Production image
 FROM node:20-alpine

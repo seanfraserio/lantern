@@ -4,10 +4,10 @@ Lantern gives full visibility into agent behavior in production. It traces reaso
 
 ## Package Map
 
-- `packages/sdk` — `@lantern-ai/sdk`: Core tracing SDK with LanternTracer, spans, collectors (Anthropic/OpenAI/MCP auto-instrumentation), and exporters.
-- `packages/ingest` — `@lantern-ai/ingest`: Fastify HTTP server for trace ingestion. POST /v1/traces endpoint with SQLite/Postgres storage.
-- `packages/evaluator` — `@lantern-ai/evaluator`: Quality scoring framework with built-in scorers (relevance, toxicity, latency) and baseline regression detection.
-- `packages/enterprise` — `@lantern-ai/enterprise`: Enterprise features (BUSL-1.1, private repo).
+- `packages/sdk` — `@openlantern-ai/sdk`: Core tracing SDK with LanternTracer, spans, collectors (Anthropic/OpenAI/MCP auto-instrumentation), and exporters.
+- `packages/ingest` — `@openlantern-ai/ingest`: Fastify HTTP server for trace ingestion. POST /v1/traces endpoint with SQLite/Postgres storage.
+- `packages/evaluator` — `@openlantern-ai/evaluator`: Quality scoring framework with built-in scorers (relevance, toxicity, latency) and baseline regression detection.
+- `packages/enterprise` — `@openlantern-ai/enterprise`: Enterprise features (BUSL-1.1, private repo).
 
 ## Key Architectural Decisions
 
