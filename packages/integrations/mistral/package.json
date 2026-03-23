@@ -1,0 +1,29 @@
+{
+  "name": "@openlantern-ai/mistral",
+  "version": "0.1.1",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@openlantern-ai/sdk": ">=0.3.0",
+    "@mistralai/mistralai": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@openlantern-ai/sdk": "workspace:*",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0"
+  }
+}

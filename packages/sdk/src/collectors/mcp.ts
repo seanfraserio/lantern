@@ -26,7 +26,7 @@ interface McpClient {
  * Usage:
  * ```typescript
  * import { Client } from "@modelcontextprotocol/sdk/client/index.js";
- * import { LanternTracer, wrapMcpClient } from "@lantern-ai/sdk";
+ * import { LanternTracer, wrapMcpClient } from "@openlantern-ai/sdk";
  *
  * const mcpClient = wrapMcpClient(new Client(...), tracer);
  * // All mcpClient.callTool() calls are now traced

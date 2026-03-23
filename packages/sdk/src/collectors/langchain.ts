@@ -26,7 +26,7 @@ export interface LangChainCallbackHandler {
  * Usage:
  * ```typescript
  * import { ChatOpenAI } from "@langchain/openai";
- * import { LanternTracer, createLanternCallbackHandler } from "@lantern-ai/sdk";
+ * import { LanternTracer, createLanternCallbackHandler } from "@openlantern-ai/sdk";
  *
  * const handler = createLanternCallbackHandler(tracer);
  * const model = new ChatOpenAI({ callbacks: [handler] });

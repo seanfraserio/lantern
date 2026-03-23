@@ -27,7 +27,7 @@ services:
       - ingest
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.6-alpine3.21
     environment:
       POSTGRES_DB: lantern
       POSTGRES_USER: ${POSTGRES_USER:-lantern}

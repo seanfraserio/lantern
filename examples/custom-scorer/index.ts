@@ -2,8 +2,8 @@
  * Example: Register a custom evaluation scorer.
  */
 
-import type { Scorer, EvalScore, Trace } from "@lantern-ai/sdk";
-import { EvalRunner, RelevanceScorer, LatencyScorer } from "@lantern-ai/evaluator";
+import type { Scorer, EvalScore, Trace } from "@openlantern-ai/sdk";
+import { EvalRunner, RelevanceScorer, LatencyScorer } from "@openlantern-ai/evaluator";
 
 /**
  * Custom scorer: checks if the agent's response is concise.

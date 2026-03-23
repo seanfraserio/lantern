@@ -4,9 +4,9 @@ WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY packages/sdk/ packages/sdk/
 COPY packages/proxy/ packages/proxy/
-RUN pnpm install --frozen-lockfile --filter @lantern-ai/proxy... --shamefully-hoist
-RUN pnpm --filter @lantern-ai/sdk run build
-RUN pnpm --filter @lantern-ai/proxy run build
+RUN pnpm install --frozen-lockfile --filter @openlantern-ai/proxy... --shamefully-hoist
+RUN pnpm --filter @openlantern-ai/sdk run build
+RUN pnpm --filter @openlantern-ai/proxy run build
 
 FROM node:20-alpine
 WORKDIR /app

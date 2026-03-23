@@ -28,6 +28,26 @@ function makeOpenAIResponse(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function makeMistralResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "cmpl-1",
+    choices: [{ message: { role: "assistant", content: "Hello!" }, finish_reason: "stop" }],
+    model: "mistral-large-latest",
+    usage: { promptTokens: 5, completionTokens: 3 },
+    ...overrides,
+  };
+}
+
+function makeCohereResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    text: "Hello!",
+    model: "command-r-plus",
+    finish_reason: "COMPLETE",
+    meta: { billedUnits: { inputTokens: 5, outputTokens: 3 } },
+    ...overrides,
+  };
+}
+
 function makeResponseObj(body: unknown, status = 200) {
   const json = JSON.stringify(body);
   return {
@@ -100,42 +120,58 @@ describe("registerProxyRoutes — route matching", () => {
     expect(upstreamUrl).toContain("/v1/chat/completions");
   });
 
-  it("routes via X-Lantern-Provider: openai header", async () => {
+  it("routes /mistral/* to api.mistral.ai", async () => {
     fetchMock.mockImplementation(async (url: string) => {
-      if (url.includes("openai.com")) return makeResponseObj(makeOpenAIResponse());
+      if (url.includes("mistral.ai")) return makeResponseObj(makeMistralResponse());
       return makeResponseObj({ accepted: 1 });
     });
 
-    await app.inject({
+    const res = await app.inject({
+      method: "POST",
+      url: "/mistral/v1/chat/completions",
+      payload: {
+        model: "mistral-large-latest",
+        messages: [{ role: "user", content: "Hi" }],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const upstreamUrl = fetchMock.mock.calls[0][0] as string;
+    expect(upstreamUrl).toContain("api.mistral.ai");
+    expect(upstreamUrl).toContain("/v1/chat/completions");
+  });
+
+  it("routes /cohere/* to api.cohere.com", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("cohere.com")) return makeResponseObj(makeCohereResponse());
+      return makeResponseObj({ accepted: 1 });
+    });
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/cohere/v1/chat",
+      payload: {
+        model: "command-r-plus",
+        messages: [{ role: "user", content: "Hi" }],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const upstreamUrl = fetchMock.mock.calls[0][0] as string;
+    expect(upstreamUrl).toContain("api.cohere.com");
+    expect(upstreamUrl).toContain("/v1/chat");
+  });
+
+  it("X-Lantern-Provider header no longer routes (returns 400 without path prefix)", async () => {
+    const res = await app.inject({
       method: "POST",
       url: "/v1/chat/completions",
       headers: { "x-lantern-provider": "openai" },
       payload: { model: "gpt-4o", messages: [{ role: "user", content: "Hi" }] },
     });
 
-    const upstreamUrl = fetchMock.mock.calls[0][0] as string;
-    expect(upstreamUrl).toContain("api.openai.com");
-  });
-
-  it("routes via X-Lantern-Provider: anthropic header", async () => {
-    fetchMock.mockImplementation(async (url: string) => {
-      if (url.includes("anthropic.com")) return makeResponseObj(makeAnthropicResponse());
-      return makeResponseObj({ accepted: 1 });
-    });
-
-    await app.inject({
-      method: "POST",
-      url: "/v1/messages",
-      headers: { "x-lantern-provider": "anthropic" },
-      payload: {
-        model: "claude-sonnet-4-5-20251001",
-        messages: [{ role: "user", content: "Hi" }],
-        max_tokens: 50,
-      },
-    });
-
-    const upstreamUrl = fetchMock.mock.calls[0][0] as string;
-    expect(upstreamUrl).toContain("api.anthropic.com");
+    expect(res.statusCode).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("returns 400 when provider cannot be determined", async () => {
@@ -146,7 +182,10 @@ describe("registerProxyRoutes — route matching", () => {
     });
 
     expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).error).toMatch(/provider/i);
+    const error = JSON.parse(res.body).error;
+    expect(error).toMatch(/provider/i);
+    expect(error).toContain("/mistral/");
+    expect(error).toContain("/cohere/");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
@@ -280,7 +319,7 @@ describe("registerProxyRoutes — trace forwarding", () => {
 
     // Second fetch call should be the ingest call
     const ingestCalls = fetchMock.mock.calls.filter(
-      ([url]: [string]) => url.includes("ingest.test")
+      (call) => (call[0] as string).includes("ingest.test")
     );
     expect(ingestCalls.length).toBeGreaterThanOrEqual(1);
     const ingestBody = JSON.parse(ingestCalls[0][1].body as string);

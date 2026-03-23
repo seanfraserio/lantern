@@ -5,7 +5,7 @@ and the upstream LLM API (Anthropic or OpenAI), forwarding requests
 transparently while capturing request and response data, building traces, and
 sending them to the Lantern ingest server.
 
-**Package:** `@lantern-ai/proxy`
+**Package:** `@openlantern-ai/proxy`
 **Source:** `packages/proxy/`
 **Default port:** `4300`
 

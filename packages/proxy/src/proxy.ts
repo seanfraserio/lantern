@@ -2,8 +2,8 @@
  * Core proxy logic for the Lantern LLM Proxy.
  *
  * Handles:
- * 1. Path-based routing: /anthropic/* -> api.anthropic.com, /openai/* -> api.openai.com
- * 2. Header-based routing: X-Lantern-Provider header
+ * 1. Path-based routing: /anthropic/*, /openai/*, /mistral/*, /cohere/* -> respective APIs
+ * 2. X-Lantern-Provider header as metadata override (not routing)
  * 3. Non-streaming: buffer response, parse, build trace, fire-and-forget to ingest
  * 4. Streaming (SSE): pipe through to client, collect chunks in background, trace after stream ends
  */
@@ -21,10 +21,21 @@ import {
   parseOpenAISSEChunks,
   buildOpenAIUrl,
 } from "./providers/openai.js";
+import {
+  parseMistralRequest,
+  parseMistralResponse,
+  parseMistralSSEChunks,
+  buildMistralUrl,
+} from "./providers/mistral.js";
+import {
+  parseCohereRequest,
+  parseCohereResponse,
+  parseCohereSSEChunks,
+  buildCohereUrl,
+} from "./providers/cohere.js";
 import { buildTrace } from "./trace-builder.js";
-import type { Readable } from "node:stream";
 
-type Provider = "anthropic" | "openai";
+type Provider = "anthropic" | "openai" | "mistral" | "cohere";
 
 interface ProxyContext {
   ingestEndpoint: string;
@@ -33,13 +44,11 @@ interface ProxyContext {
 /**
  * Determine the provider from the URL path or X-Lantern-Provider header.
  */
-function resolveProvider(path: string, headers: Record<string, string | string[] | undefined>): Provider | null {
+function resolveProvider(path: string): Provider | null {
   if (path.startsWith("/anthropic/")) return "anthropic";
   if (path.startsWith("/openai/")) return "openai";
-
-  const headerVal = headers["x-lantern-provider"];
-  const providerHeader = Array.isArray(headerVal) ? headerVal[0] : headerVal;
-  if (providerHeader === "anthropic" || providerHeader === "openai") return providerHeader;
+  if (path.startsWith("/mistral/")) return "mistral";
+  if (path.startsWith("/cohere/")) return "cohere";
 
   return null;
 }
@@ -49,6 +58,8 @@ function resolveProvider(path: string, headers: Record<string, string | string[]
  */
 function buildTargetUrl(provider: Provider, path: string): string {
   if (provider === "anthropic") return buildAnthropicUrl(path);
+  if (provider === "mistral") return buildMistralUrl(path);
+  if (provider === "cohere") return buildCohereUrl(path);
   return buildOpenAIUrl(path);
 }
 
@@ -57,6 +68,8 @@ function buildTargetUrl(provider: Provider, path: string): string {
  */
 function parseRequest(provider: Provider, body: unknown) {
   if (provider === "anthropic") return parseAnthropicRequest(body);
+  if (provider === "mistral") return parseMistralRequest(body);
+  if (provider === "cohere") return parseCohereRequest(body);
   return parseOpenAIRequest(body);
 }
 
@@ -65,6 +78,8 @@ function parseRequest(provider: Provider, body: unknown) {
  */
 function parseResponse(provider: Provider, body: unknown) {
   if (provider === "anthropic") return parseAnthropicResponse(body);
+  if (provider === "mistral") return parseMistralResponse(body);
+  if (provider === "cohere") return parseCohereResponse(body);
   return parseOpenAIResponse(body);
 }
 
@@ -73,6 +88,8 @@ function parseResponse(provider: Provider, body: unknown) {
  */
 function parseSSEChunks(provider: Provider, chunks: string[]) {
   if (provider === "anthropic") return parseAnthropicSSEChunks(chunks);
+  if (provider === "mistral") return parseMistralSSEChunks(chunks);
+  if (provider === "cohere") return parseCohereSSEChunks(chunks);
   return parseOpenAISSEChunks(chunks);
 }
 
@@ -84,22 +101,45 @@ const STRIP_RESPONSE_HEADERS = new Set([
   "server",
 ]);
 
+const HOP_BY_HOP_HEADERS = new Set(["transfer-encoding", "connection"]);
+
+/**
+ * Allowlist of request headers to forward to upstream LLM APIs.
+ * Only these headers are forwarded — everything else is stripped.
+ */
+const ALLOWED_REQUEST_HEADERS = new Set([
+  "authorization",
+  "content-type",
+  "x-api-key",
+  "anthropic-version",
+  "anthropic-beta",
+  "openai-organization",
+  "openai-project",
+]);
+
+/**
+ * Forward response headers from the upstream response to the client reply,
+ * stripping hop-by-hop and sensitive headers.
+ */
+function forwardResponseHeaders(upstreamResponse: Response, reply: FastifyReply): void {
+  for (const [key, value] of upstreamResponse.headers.entries()) {
+    const lower = key.toLowerCase();
+    if (HOP_BY_HOP_HEADERS.has(lower)) continue;
+    if (STRIP_RESPONSE_HEADERS.has(lower)) continue;
+    reply.header(key, value);
+  }
+}
+
 /**
  * Build upstream headers from the incoming request.
- * Strips all X-Lantern-* headers so they don't leak to the upstream API.
+ * Uses an allowlist to only forward recognized, safe headers.
  */
 function buildUpstreamHeaders(incomingHeaders: Record<string, string | string[] | undefined>): Record<string, string> {
   const upstream: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(incomingHeaders)) {
-    // Skip Lantern-specific headers
-    if (key.toLowerCase().startsWith("x-lantern-")) continue;
-    // Skip hop-by-hop headers
-    if (key.toLowerCase() === "host") continue;
-    if (key.toLowerCase() === "connection") continue;
-    if (key.toLowerCase() === "transfer-encoding") continue;
-    // Skip content-length since we re-serialize the body
-    if (key.toLowerCase() === "content-length") continue;
+    const lower = key.toLowerCase();
+    if (!ALLOWED_REQUEST_HEADERS.has(lower)) continue;
 
     if (value !== undefined) {
       upstream[key] = Array.isArray(value) ? value.join(", ") : value;
@@ -167,6 +207,7 @@ async function handleNonStreaming(
   parsedRequest: ReturnType<typeof parseRequest>,
   lanternApiKey: string | undefined,
   serviceName: string | undefined,
+  providerOverride: string | undefined,
   ctx: ProxyContext,
   request: FastifyRequest,
   reply: FastifyReply,
@@ -187,14 +228,7 @@ async function handleNonStreaming(
 
   // Forward the response status and headers to the client
   reply.status(upstreamResponse.status);
-  for (const [key, value] of upstreamResponse.headers.entries()) {
-    // Skip hop-by-hop headers
-    if (key.toLowerCase() === "transfer-encoding") continue;
-    if (key.toLowerCase() === "connection") continue;
-    // Strip sensitive upstream headers
-    if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
-    reply.header(key, value);
-  }
+  forwardResponseHeaders(upstreamResponse, reply);
 
   // Parse response and build trace (only for successful responses)
   if (upstreamResponse.ok) {
@@ -212,6 +246,7 @@ async function handleNonStreaming(
         durationMs,
         stopReason: parsedResponse.stopReason,
         serviceName,
+        providerOverride,
       });
 
       sendTrace(ctx.ingestEndpoint, trace, lanternApiKey, request.log);
@@ -230,6 +265,7 @@ async function handleNonStreaming(
       durationMs,
       error: `HTTP ${upstreamResponse.status}: ${responseBody.slice(0, 500)}`,
       serviceName,
+      providerOverride,
     });
     sendTrace(ctx.ingestEndpoint, trace, lanternApiKey, request.log);
   }
@@ -250,6 +286,7 @@ async function handleStreaming(
   parsedRequest: ReturnType<typeof parseRequest>,
   lanternApiKey: string | undefined,
   serviceName: string | undefined,
+  providerOverride: string | undefined,
   ctx: ProxyContext,
   request: FastifyRequest,
   reply: FastifyReply,
@@ -271,12 +308,7 @@ async function handleStreaming(
     const durationMs = Math.round(performance.now() - startTime);
 
     reply.status(upstreamResponse.status);
-    for (const [key, value] of upstreamResponse.headers.entries()) {
-      if (key.toLowerCase() === "transfer-encoding") continue;
-      if (key.toLowerCase() === "connection") continue;
-      if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
-      reply.header(key, value);
-    }
+    forwardResponseHeaders(upstreamResponse, reply);
 
     const trace = buildTrace({
       provider,
@@ -288,6 +320,7 @@ async function handleStreaming(
       durationMs,
       error: `HTTP ${upstreamResponse.status}: ${responseBody.slice(0, 500)}`,
       serviceName,
+      providerOverride,
     });
     sendTrace(ctx.ingestEndpoint, trace, lanternApiKey, request.log);
 
@@ -297,12 +330,7 @@ async function handleStreaming(
 
   // Forward SSE headers to the client
   reply.status(upstreamResponse.status);
-  for (const [key, value] of upstreamResponse.headers.entries()) {
-    if (key.toLowerCase() === "transfer-encoding") continue;
-    if (key.toLowerCase() === "connection") continue;
-    if (STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
-    reply.header(key, value);
-  }
+  forwardResponseHeaders(upstreamResponse, reply);
 
   // Pipe the stream through to the client while collecting SSE data
   const collectedChunks: string[] = [];
@@ -352,6 +380,7 @@ async function handleStreaming(
         durationMs,
         stopReason: parsedSSE.stopReason,
         serviceName,
+        providerOverride,
       });
 
       sendTrace(ctx.ingestEndpoint, trace, lanternApiKey, request.log);
@@ -364,16 +393,16 @@ async function handleStreaming(
  */
 export function registerProxyRoutes(app: FastifyInstance, ctx: ProxyContext): void {
   // Catch-all route for proxy requests.
-  // Matches both path-based (/anthropic/*, /openai/*) and header-based routing.
+  // Routes via path prefix: /anthropic/*, /openai/*, /mistral/*, /cohere/*.
   app.all("/*", async (request, reply) => {
     const path = request.url;
     const headers = request.headers as Record<string, string | string[] | undefined>;
 
     // Resolve provider
-    const provider = resolveProvider(path, headers);
+    const provider = resolveProvider(path);
     if (!provider) {
       return reply.status(400).send({
-        error: "Could not determine LLM provider. Use path prefix (/anthropic/ or /openai/) or X-Lantern-Provider header.",
+        error: "Could not determine LLM provider. Use path prefix: /anthropic/, /openai/, /mistral/, or /cohere/.",
       });
     }
 
@@ -383,6 +412,10 @@ export function registerProxyRoutes(app: FastifyInstance, ctx: ProxyContext): vo
 
     const serviceNameHeader = headers["x-lantern-service"];
     const serviceName = Array.isArray(serviceNameHeader) ? serviceNameHeader[0] : serviceNameHeader;
+
+    // X-Lantern-Provider is now metadata-only (provider override for trace)
+    const providerOverrideHeader = headers["x-lantern-provider"];
+    const providerOverride = Array.isArray(providerOverrideHeader) ? providerOverrideHeader[0] : providerOverrideHeader;
 
     // Build the target URL
     const targetUrl = buildTargetUrl(provider, path);
@@ -406,23 +439,25 @@ export function registerProxyRoutes(app: FastifyInstance, ctx: ProxyContext): vo
         parsedRequest,
         lanternApiKey,
         serviceName,
-        ctx,
-        request,
-        reply,
-      );
-    } else {
-      return handleNonStreaming(
-        provider,
-        targetUrl,
-        upstreamHeaders,
-        requestBody,
-        parsedRequest,
-        lanternApiKey,
-        serviceName,
+        providerOverride,
         ctx,
         request,
         reply,
       );
     }
+
+    return handleNonStreaming(
+      provider,
+      targetUrl,
+      upstreamHeaders,
+      requestBody,
+      parsedRequest,
+      lanternApiKey,
+      serviceName,
+      providerOverride,
+      ctx,
+      request,
+      reply,
+    );
   });
 }

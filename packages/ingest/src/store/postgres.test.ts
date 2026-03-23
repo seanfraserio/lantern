@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PostgresTraceStore } from "./postgres.js";
-import type { Trace } from "@lantern-ai/sdk";
+import type { Trace } from "@openlantern-ai/sdk";
 
 // These tests require a running Postgres instance.
 // Skip in CI unless POSTGRES_URL is set.

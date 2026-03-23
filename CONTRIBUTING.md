@@ -32,11 +32,11 @@ This starts the ingest server, seeds it with sample traces, and opens the dashbo
 
 | Package | Path | Description |
 |---|---|---|
-| `@lantern-ai/sdk` | `packages/sdk` | Core tracing SDK — tracer, spans, collectors, exporters |
-| `@lantern-ai/ingest` | `packages/ingest` | Fastify HTTP server for trace ingestion and storage |
-| `@lantern-ai/evaluator` | `packages/evaluator` | Quality scoring framework with built-in scorers |
-| `@lantern-ai/dashboard` | `packages/dashboard` | React web UI components |
-| `@lantern-ai/enterprise` | `packages/enterprise` | Enterprise features (BUSL-1.1 licensed) |
+| `@openlantern-ai/sdk` | `packages/sdk` | Core tracing SDK — tracer, spans, collectors, exporters |
+| `@openlantern-ai/ingest` | `packages/ingest` | Fastify HTTP server for trace ingestion and storage |
+| `@openlantern-ai/evaluator` | `packages/evaluator` | Quality scoring framework with built-in scorers |
+| `@openlantern-ai/dashboard` | `packages/dashboard` | React web UI components |
+| `@openlantern-ai/enterprise` | `packages/enterprise` | Enterprise features (BUSL-1.1 licensed) |
 
 ## Making Changes
 
@@ -58,12 +58,12 @@ This starts the ingest server, seeds it with sample traces, and opens the dashbo
 ### Adding a Custom Scorer
 
 1. Create `packages/evaluator/src/scorers/<name>.ts`
-2. Implement the `Scorer` interface from `@lantern-ai/sdk`
+2. Implement the `Scorer` interface from `@openlantern-ai/sdk`
 3. Export it from `packages/evaluator/src/index.ts`
 4. Add a test file `packages/evaluator/src/scorers/<name>.test.ts`
 
 ```typescript
-import type { Scorer, EvalScore, Trace } from "@lantern-ai/sdk";
+import type { Scorer, EvalScore, Trace } from "@openlantern-ai/sdk";
 
 export class MyScorer implements Scorer {
   name = "my-scorer";

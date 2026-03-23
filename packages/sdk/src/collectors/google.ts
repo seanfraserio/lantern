@@ -46,7 +46,7 @@ interface GoogleGenerativeModel {
  * Usage:
  * ```typescript
  * import { GoogleGenerativeAI } from "@google/generative-ai";
- * import { LanternTracer, wrapGoogleGenerativeModel } from "@lantern-ai/sdk";
+ * import { LanternTracer, wrapGoogleGenerativeModel } from "@openlantern-ai/sdk";
  *
  * const genAI = new GoogleGenerativeAI(apiKey);
  * const model = wrapGoogleGenerativeModel(

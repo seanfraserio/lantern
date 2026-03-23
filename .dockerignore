@@ -1,0 +1,11 @@
+node_modules
+.git
+.env*
+*.test.ts
+**/__tests__
+.turbo
+dist
+.next
+coverage
+*.tsbuildinfo
+.DS_Store

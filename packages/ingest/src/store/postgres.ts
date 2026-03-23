@@ -1,5 +1,5 @@
 import pg from "pg";
-import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@lantern-ai/sdk";
+import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@openlantern-ai/sdk";
 
 const { Pool } = pg;
 
@@ -18,9 +18,15 @@ export class PostgresTraceStore implements ITraceStore {
   private schema: string;
 
   constructor(config: PostgresConfig) {
+    if (!/^[a-z0-9_]{1,63}$/.test(config.tenantSchema)) {
+      throw new Error(
+        `Invalid tenant schema name: "${config.tenantSchema}". ` +
+        `Must match /^[a-z0-9_]{1,63}$/.`
+      );
+    }
     this.pool = new Pool({
       connectionString: config.connectionString,
-      max: config.poolSize ?? 5,
+      max: config.poolSize ?? 15,
     });
     this.schema = config.tenantSchema;
   }
@@ -56,43 +62,49 @@ export class PostgresTraceStore implements ITraceStore {
     await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_env" ON ${this.table}(environment)`);
     await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_status" ON ${this.table}(status)`);
     await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_start" ON ${this.table}(start_time DESC)`);
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_agent_start" ON ${this.table}(agent_name, start_time DESC)`);
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_env_start" ON ${this.table}(environment, start_time DESC)`);
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS "idx_${this.schema}_status_start" ON ${this.table}(status, start_time DESC)`);
   }
 
   async insert(traces: Trace[]): Promise<void> {
     if (traces.length === 0) return;
-    const client = await this.pool.connect();
-    try {
-      await client.query("BEGIN");
-      for (const trace of traces) {
-        await client.query(
-          `INSERT INTO ${this.table} (
-            id, session_id, agent_name, agent_version, environment,
-            start_time, end_time, duration_ms, status,
-            total_input_tokens, total_output_tokens, estimated_cost_usd,
-            metadata, source, spans, scores
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-          ON CONFLICT (id) DO NOTHING`,
-          [
-            trace.id, trace.sessionId, trace.agentName,
-            trace.agentVersion ?? null, trace.environment,
-            trace.startTime, trace.endTime ?? null,
-            trace.durationMs ?? null, trace.status,
-            trace.totalInputTokens, trace.totalOutputTokens,
-            trace.estimatedCostUsd,
-            JSON.stringify(trace.metadata),
-            trace.source ? JSON.stringify(trace.source) : null,
-            JSON.stringify(trace.spans),
-            trace.scores ? JSON.stringify(trace.scores) : null,
-          ]
-        );
-      }
-      await client.query("COMMIT");
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
-    } finally {
-      client.release();
+
+    // Build multi-row VALUES for batch insert (1 round-trip instead of N)
+    const COLS_PER_ROW = 16;
+    const params: unknown[] = [];
+    const valueRows: string[] = [];
+
+    for (let i = 0; i < traces.length; i++) {
+      const offset = i * COLS_PER_ROW;
+      const placeholders = Array.from({ length: COLS_PER_ROW }, (_, j) => `$${offset + j + 1}`);
+      valueRows.push(`(${placeholders.join(",")})`);
+
+      const trace = traces[i];
+      params.push(
+        trace.id, trace.sessionId, trace.agentName,
+        trace.agentVersion ?? null, trace.environment,
+        trace.startTime, trace.endTime ?? null,
+        trace.durationMs ?? null, trace.status,
+        trace.totalInputTokens, trace.totalOutputTokens,
+        trace.estimatedCostUsd,
+        JSON.stringify(trace.metadata),
+        trace.source ? JSON.stringify(trace.source) : null,
+        JSON.stringify(trace.spans),
+        trace.scores ? JSON.stringify(trace.scores) : null,
+      );
     }
+
+    await this.pool.query(
+      `INSERT INTO ${this.table} (
+        id, session_id, agent_name, agent_version, environment,
+        start_time, end_time, duration_ms, status,
+        total_input_tokens, total_output_tokens, estimated_cost_usd,
+        metadata, source, spans, scores
+      ) VALUES ${valueRows.join(",")}
+      ON CONFLICT (id) DO NOTHING`,
+      params
+    );
   }
 
   async getTrace(id: string): Promise<Trace | null> {

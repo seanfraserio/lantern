@@ -7,4 +7,4 @@ export { PostgresTraceStore } from "./store/postgres.js";
 export type { PostgresConfig } from "./store/postgres.js";
 export { PromptStore, extractVariables } from "./store/prompt-store.js";
 export type { Prompt, PromptSummary, PromptVersion } from "./store/prompt-store.js";
-export type { ITraceStore, TraceQueryFilter } from "@lantern-ai/sdk";
+export type { ITraceStore, TraceQueryFilter } from "@openlantern-ai/sdk";

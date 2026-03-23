@@ -62,7 +62,7 @@ interface OpenAIClient {
  * Usage:
  * ```typescript
  * import OpenAI from "openai";
- * import { LanternTracer, wrapOpenAIClient } from "@lantern-ai/sdk";
+ * import { LanternTracer, wrapOpenAIClient } from "@openlantern-ai/sdk";
  *
  * const client = wrapOpenAIClient(new OpenAI(), tracer);
  * // All client.chat.completions.create() calls are now traced

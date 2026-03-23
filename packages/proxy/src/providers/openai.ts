@@ -95,9 +95,13 @@ export function parseOpenAISSEChunks(chunks: string[]): Partial<OpenAICapture> {
 /**
  * Build the target URL for an OpenAI API request.
  * Strips the /openai prefix from the path.
+ * Validates that the resulting path is safe (no traversal, must start with /v1/).
  */
 export function buildOpenAIUrl(path: string): string {
   // /openai/v1/chat/completions -> /v1/chat/completions
   const stripped = path.replace(/^\/openai/, "");
+  if (stripped.includes("..") || !stripped.startsWith("/v1/")) {
+    throw new Error(`Invalid API path: ${stripped}`);
+  }
   return `${OPENAI_BASE_URL}${stripped}`;
 }

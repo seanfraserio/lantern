@@ -480,7 +480,7 @@ function renderSources() {
     '</div>';
 
   if (allSources.length === 0) {
-    html += '<div class="loading" style="margin-top:40px;">No sources detected yet. Instrument an agent with <code>@lantern-ai/sdk</code> to start sending traces.</div>';
+    html += '<div class="loading" style="margin-top:40px;">No sources detected yet. Instrument an agent with <code>@openlantern-ai/sdk</code> to start sending traces.</div>';
     container.innerHTML = html;
     return;
   }
@@ -517,7 +517,7 @@ function renderSources() {
   // SDK quickstart
   html += '<div class="config-card" style="margin-top:24px;"><div class="metric-title">Connect a New Source</div>' +
     '<div class="span-io-block" style="max-height:none;">' +
-    esc('import { LanternTracer, LanternExporter } from "@lantern-ai/sdk";\\n\\nconst tracer = new LanternTracer({\\n  serviceName: "my-service",\\n  environment: "production",\\n  exporter: new LanternExporter({\\n    endpoint: "' + API + '",\\n  }),\\n});') +
+    esc('import { LanternTracer, LanternExporter } from "@openlantern-ai/sdk";\\n\\nconst tracer = new LanternTracer({\\n  serviceName: "my-service",\\n  environment: "production",\\n  exporter: new LanternExporter({\\n    endpoint: "' + API + '",\\n  }),\\n});') +
     '</div></div>';
 
   container.innerHTML = html;

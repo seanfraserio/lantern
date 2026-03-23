@@ -6,7 +6,7 @@
  */
 
 // import Anthropic from "@anthropic-ai/sdk";
-import { LanternTracer, ConsoleExporter, wrapAnthropicClient } from "@lantern-ai/sdk";
+import { LanternTracer, ConsoleExporter, wrapAnthropicClient } from "@openlantern-ai/sdk";
 
 // 1. Create a tracer with a console exporter (for dev)
 const tracer = new LanternTracer({

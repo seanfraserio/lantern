@@ -17,3 +17,4 @@ infra/
 .superpowers/
 docs/superpowers/
 docs/enterprise.md
+.worktrees/

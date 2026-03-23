@@ -161,6 +161,14 @@ describe("buildOpenAIUrl", () => {
     );
   });
 
+  it("rejects paths with traversal sequences", () => {
+    expect(() => buildOpenAIUrl("/openai/v1/../../../etc/passwd")).toThrow("Invalid API path");
+  });
+
+  it("rejects paths that do not start with /v1/", () => {
+    expect(() => buildOpenAIUrl("/openai/admin/keys")).toThrow("Invalid API path");
+  });
+
   it("OPENAI_BASE_URL points to api.openai.com", () => {
     expect(OPENAI_BASE_URL).toBe("https://api.openai.com");
   });

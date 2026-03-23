@@ -7,7 +7,7 @@ enforced, and what happens when they are exceeded.
 
 ## Plan Tiers
 
-Lantern offers three tiers, each targeting a different stage of adoption:
+Lantern offers five tiers, each targeting a different stage of adoption:
 
 ### Community (free, self-hosted)
 
@@ -15,23 +15,24 @@ The Community plan is free and self-hosted. It includes the full open-source
 core:
 
 - Trace ingestion and storage (SQLite or PostgreSQL)
-- TypeScript and Python SDKs
-- LLM Proxy
-- Scorecards and quality metrics
+- TypeScript and Python SDKs with auto-instrumentation for 28 providers and frameworks
+- Dashboard (traces, metrics, sources)
+- Custom evaluation scorers
 - Regression detection
-- Cost analysis and forecasting
-- Budget alerts
-- Up to 10,000 traces per month (in managed multi-tenant mode)
-- 7-day data retention
+- Unlimited agents
+- Unlimited traces (self-hosted)
+- Community support
 
 **What is not included:**
 
+- Managed cloud hosting
 - PII detection and redaction
-- Compliance exports (SOC 2, HIPAA, GDPR)
 - Alert channels (Slack, PagerDuty, email, webhook)
 - Team management and RBAC
+- Cost forecasting and budgets
 - SSO/SAML authentication
-- Managed cloud hosting
+- Compliance exports (SOC 2, HIPAA, GDPR)
+- LLM Proxy (zero-code tracing)
 - Custom data retention
 
 The Community plan is ideal for individual developers and small teams
@@ -39,36 +40,66 @@ evaluating agent observability. There is no account creation required for
 self-hosted deployments -- the ingest server runs standalone with an optional
 API key.
 
-### Team ($299/mo)
+### Starter ($49/mo)
 
-The Team plan is a managed cloud offering that adds enterprise features on top
-of the open-source core:
+The Starter plan is a managed cloud offering for small teams getting started:
 
 - Everything in Community
-- Managed cloud deployment (no infrastructure to maintain)
-- 1,000,000 traces per month
+- Managed cloud ingest
+- Up to 100,000 traces per month
+- 30-day data retention
+- Up to 5 users
+- Basic email alerts
+- Google + GitHub OAuth
+- Dashboard (traces, metrics, sources)
+
+The Starter plan is managed through Stripe. Users subscribe via
+`POST /billing/checkout`, which creates a Stripe Checkout session.
+
+### Team ($299/mo)
+
+The Team plan is the most popular managed cloud offering, adding enterprise
+features:
+
+- Everything in Community
+- Managed cloud ingest
+- Up to 1,000,000 traces per month
 - 90-day data retention
-- PII detection and redaction
-- Alert channels (Slack, PagerDuty, email, webhook)
-- Team management with role-based access control
-- Agent scope restrictions per team
+- Unlimited agents
+- PII detection and auto-redaction
+- Slack + webhook alerting
+- Team-scoped RBAC
+- Cost forecasting + budgets
+- Google + GitHub OAuth
+- Email support
 
 The Team plan is managed through Stripe. Users subscribe via
 `POST /billing/checkout`, which creates a Stripe Checkout session. The
 subscription is a simple monthly fee with no per-trace overage charges.
 
+### Team+ ($599/mo)
+
+The Team+ plan is for high-volume agent workloads:
+
+- Everything in Team
+- Up to 5,000,000 traces per month (5x Team volume)
+- 90-day data retention
+- Unlimited agents
+- Priority email support
+
 ### Enterprise (custom pricing)
 
 The Enterprise plan adds compliance, SSO, and custom terms:
 
-- Everything in Team
+- Everything in Team+
 - Effectively unlimited traces
-- 365-day data retention (or custom)
-- Compliance exports (SOC 2 Type II, HIPAA, GDPR)
-- SSO/SAML authentication
-- Custom retention policies
-- Dedicated support
-- Custom pricing
+- SOC 2 / HIPAA / GDPR audit export
+- PagerDuty integration
+- SSO / SAML (Okta, Azure AD)
+- Magic Link email auth
+- Custom trace retention
+- LLM Proxy (zero-code tracing)
+- Dedicated support + SLA
 
 Enterprise plans are negotiated directly and not available through self-service
 checkout.
@@ -99,8 +130,10 @@ GET requests (queries) are never limited.
 
 | Plan | Monthly trace limit |
 |---|---|
-| `free` | 10,000 |
+| `free` (Community) | Unlimited (self-hosted), 10,000 (managed) |
+| `starter` | 100,000 |
 | `team` | 1,000,000 |
+| `team_plus` | 5,000,000 |
 | `enterprise` | 999,999,999 (effectively unlimited) |
 
 ---
@@ -163,7 +196,7 @@ When a tenant exceeds their monthly trace limit:
   "plan": "free",
   "used": 10000,
   "limit": 10000,
-  "message": "Your free plan allows 10,000 traces/month. Upgrade at https://openlanternai-dashboard.pages.dev"
+  "message": "Your free plan allows 10,000 traces/month. Upgrade at https://dashboard.openlanternai.com"
 }
 ```
 
@@ -220,14 +253,14 @@ The webhook handler processes three Stripe event types:
 
 | Event | Action |
 |---|---|
-| `checkout.session.completed` | Set plan to `team`, store subscription ID |
+| `checkout.session.completed` | Set plan to the purchased tier (`starter`, `team`, `team_plus`), store subscription ID |
 | `customer.subscription.deleted` | Revert plan to `free`, clear subscription ID |
-| `customer.subscription.updated` | Update plan based on subscription status (`active` -> `team`, `past_due`/`unpaid` -> `free`) |
+| `customer.subscription.updated` | Update plan based on subscription status (`active` -> plan tier, `past_due`/`unpaid` -> `free`) |
 
 If a subscription becomes `past_due` or `unpaid`, the tenant is downgraded to
-the free plan. This means their trace limit drops to 10,000/month and their
-data retention shortens to 7 days. However, existing data is not deleted
-immediately -- it is cleaned up by the next retention job run.
+the free plan. This means their trace limit drops to 10,000/month. However,
+existing data is not deleted immediately -- it is cleaned up by the next
+retention job run.
 
 ---
 
@@ -244,7 +277,7 @@ server in single-tenant mode does not enforce usage limits.
 
 All features available in the open-source packages are usable without
 restriction. Enterprise features (PII, compliance, alerts, teams) require the
-`@lantern-ai/enterprise` package, which is licensed separately.
+`@openlantern-ai/enterprise` package, which is licensed separately.
 
 ### Managed (multi-tenant)
 

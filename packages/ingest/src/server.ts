@@ -8,7 +8,7 @@ import { registerPromptRoutes } from "./routes/prompts.js";
 import { registerObservability, recordMetric } from "./lib/observability.js";
 import { loadConfig } from "./config.js";
 import type { LanternConfig } from "./config.js";
-import type { ITraceStore } from "@lantern-ai/sdk";
+import type { ITraceStore } from "@openlantern-ai/sdk";
 
 export interface IngestServerConfig {
   port: number;
@@ -25,9 +25,9 @@ export interface IngestServerConfig {
  * Create a store for the given tenant schema.
  * In multi-tenant mode, each request gets a store scoped to the tenant's schema.
  */
-async function createPostgresStore(databaseUrl: string, tenantSchema: string): Promise<ITraceStore> {
+async function createPostgresStore(databaseUrl: string, tenantSchema: string, poolSize?: number): Promise<ITraceStore> {
   const { PostgresTraceStore } = await import("./store/postgres.js");
-  const store = new PostgresTraceStore({ connectionString: databaseUrl, tenantSchema });
+  const store = new PostgresTraceStore({ connectionString: databaseUrl, tenantSchema, poolSize });
   await store.initialize();
   return store;
 }
@@ -81,7 +81,8 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   // Prompt store (SQLite-backed, shared across tenants)
   const { PromptStore } = await import("./store/prompt-store.js");
   const Database = (await import("better-sqlite3")).default;
-  const promptDbPath = config?.dbPath ?? yamlConfig.storage.path ?? "lantern.db";
+  // Use /tmp/ for prompt DB on Cloud Run (ephemeral filesystem), configurable via env var
+  const promptDbPath = process.env.PROMPT_DB_PATH ?? config?.dbPath ?? "/tmp/lantern-prompts.db";
   const promptDb = new Database(promptDbPath);
   promptDb.pragma("journal_mode = WAL");
   const promptStore = new PromptStore(promptDb);
@@ -90,7 +91,11 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   const app = Fastify({
     logger: { level: yamlConfig.server.log_level },
     bodyLimit: 1_048_576,
-    genReqId: (req) => (req.headers["x-request-id"] as string) ?? randomUUID(),
+    genReqId: (req) => {
+      const raw = req.headers["x-request-id"];
+      const id = typeof raw === "string" && /^[a-zA-Z0-9._-]{1,128}$/.test(raw) ? raw : undefined;
+      return id ?? randomUUID();
+    },
   });
 
   await app.register(compress, { global: true });
@@ -106,18 +111,21 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     reply.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
     reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
     reply.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    reply.header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'");
   });
 
   if (multiTenant && databaseUrl) {
     // ── Multi-tenant mode ──
     // Resolve API key → tenant on every /v1/ request
     const pg = await import("pg");
-    const pool = new pg.default.Pool({ connectionString: databaseUrl, max: 5 });
+    const pool = new pg.default.Pool({ connectionString: databaseUrl, max: 15 });
     const { TenantResolver } = await import("./middleware/tenant.js");
     const resolver = new TenantResolver(pool);
 
-    // Store cache: reuse PostgresTraceStore instances per tenant
+    // Store cache: reuse PostgresTraceStore instances per tenant (max 100, LRU eviction)
+    const STORE_CACHE_MAX = 100;
     const storeCache = new Map<string, ITraceStore>();
+    const storeCacheLastAccess = new Map<string, number>();
 
     // Usage limit cache: { tenantId -> { count, checkedAt } }
     const PLAN_LIMITS: Record<string, number> = {
@@ -183,9 +191,32 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
 
       // Get or create a store for this tenant
       let store = storeCache.get(tenant.tenantSlug);
-      if (!store) {
-        store = await createPostgresStore(databaseUrl, `tenant_${tenant.tenantSlug}`);
+      if (store) {
+        // Update last access time for LRU tracking
+        storeCacheLastAccess.set(tenant.tenantSlug, Date.now());
+      } else {
+        // Evict least recently used entry if cache is full
+        if (storeCache.size >= STORE_CACHE_MAX) {
+          let lruKey: string | null = null;
+          let lruTime = Infinity;
+          for (const [key, accessTime] of storeCacheLastAccess) {
+            if (accessTime < lruTime) {
+              lruTime = accessTime;
+              lruKey = key;
+            }
+          }
+          if (lruKey) {
+            const evicted = storeCache.get(lruKey);
+            storeCache.delete(lruKey);
+            storeCacheLastAccess.delete(lruKey);
+            if (evicted && "close" in evicted && typeof (evicted as { close: () => Promise<void> }).close === "function") {
+              (evicted as { close: () => Promise<void> }).close().catch(() => {});
+            }
+          }
+        }
+        store = await createPostgresStore(databaseUrl, `tenant_${tenant.tenantSlug}`, 3);
         storeCache.set(tenant.tenantSlug, store);
+        storeCacheLastAccess.set(tenant.tenantSlug, Date.now());
       }
 
       // Attach tenant info and store to the request
@@ -201,6 +232,12 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     registerPromptRoutes(app, promptStore);
   } else {
     // ── Single-tenant mode (OSS / self-hosted) ──
+    if (!apiKey) {
+      console.warn(
+        "[lantern] WARNING: No API key configured. The ingest server is running without authentication. " +
+        "Set LANTERN_API_KEY or configure auth.api_keys in lantern.yaml to secure the API."
+      );
+    }
     if (apiKey) {
       const { timingSafeEqual } = await import("node:crypto");
       app.addHook("onRequest", async (request, reply) => {

@@ -1,6 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import type { PromptStore } from "../store/prompt-store.js";
 
+const VALID_PROMPT_NAME = /^[a-zA-Z0-9_-]{1,128}$/;
+const MAX_CONTENT_LENGTH = 100_000;
+
 export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): void {
   // POST /v1/prompts — create a new prompt
   app.post<{
@@ -10,6 +13,11 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       return reply.status(400).send({ error: "name is required" });
+    }
+    if (!VALID_PROMPT_NAME.test(name.trim())) {
+      return reply.status(400).send({
+        error: "Invalid prompt name. Must match /^[a-zA-Z0-9_-]{1,128}$/.",
+      });
     }
 
     try {
@@ -37,6 +45,9 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
 
   // GET /v1/prompts/:name — get active version of a prompt
   app.get<{ Params: { name: string } }>("/v1/prompts/:name", async (request, reply) => {
+    if (!VALID_PROMPT_NAME.test(request.params.name)) {
+      return reply.status(400).send({ error: "Invalid prompt name." });
+    }
     try {
       const version = await store.getActiveVersion(request.params.name);
       if (!version) {
@@ -51,6 +62,9 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
 
   // GET /v1/prompts/:name/versions — list all versions of a prompt
   app.get<{ Params: { name: string } }>("/v1/prompts/:name/versions", async (request, reply) => {
+    if (!VALID_PROMPT_NAME.test(request.params.name)) {
+      return reply.status(400).send({ error: "Invalid prompt name." });
+    }
     try {
       const versions = await store.listVersions(request.params.name);
       return reply.status(200).send({ versions });
@@ -65,10 +79,18 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
     Params: { name: string };
     Body: { content: string; model?: string; activate?: boolean };
   }>("/v1/prompts/:name/versions", async (request, reply) => {
+    if (!VALID_PROMPT_NAME.test(request.params.name)) {
+      return reply.status(400).send({ error: "Invalid prompt name." });
+    }
     const { content, model, activate } = request.body ?? {};
 
     if (!content || typeof content !== "string") {
       return reply.status(400).send({ error: "content is required" });
+    }
+    if (content.length > MAX_CONTENT_LENGTH) {
+      return reply.status(400).send({
+        error: `Content exceeds maximum length of ${MAX_CONTENT_LENGTH} characters.`,
+      });
     }
 
     try {
@@ -92,6 +114,9 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
   app.put<{
     Params: { name: string; version: string };
   }>("/v1/prompts/:name/activate/:version", async (request, reply) => {
+    if (!VALID_PROMPT_NAME.test(request.params.name)) {
+      return reply.status(400).send({ error: "Invalid prompt name." });
+    }
     const versionNum = parseInt(request.params.version, 10);
     if (isNaN(versionNum) || versionNum < 1) {
       return reply.status(400).send({ error: "version must be a positive integer" });
@@ -111,6 +136,9 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
 
   // DELETE /v1/prompts/:name — delete a prompt and all its versions
   app.delete<{ Params: { name: string } }>("/v1/prompts/:name", async (request, reply) => {
+    if (!VALID_PROMPT_NAME.test(request.params.name)) {
+      return reply.status(400).send({ error: "Invalid prompt name." });
+    }
     try {
       await store.deletePrompt(request.params.name);
       return reply.status(204).send();

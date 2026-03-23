@@ -50,7 +50,7 @@ interface AnthropicClient {
  * Usage:
  * ```typescript
  * import Anthropic from "@anthropic-ai/sdk";
- * import { LanternTracer, wrapAnthropicClient } from "@lantern-ai/sdk";
+ * import { LanternTracer, wrapAnthropicClient } from "@openlantern-ai/sdk";
  *
  * const client = wrapAnthropicClient(new Anthropic(), tracer);
  * // All client.messages.create() calls are now traced

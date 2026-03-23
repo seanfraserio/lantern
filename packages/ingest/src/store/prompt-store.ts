@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
+import { safeJsonParse } from "./util.js";
 
 // ── Types ──
 
@@ -37,6 +38,12 @@ export interface PromptVersion {
 export function extractVariables(content: string): string[] {
   const matches = content.matchAll(/\{\{(\w+)\}\}/g);
   return [...new Set(Array.from(matches, (m) => m[1]))];
+}
+
+function codedError(message: string, code: string): Error {
+  const e = new Error(message);
+  (e as Error & { code: string }).code = code;
+  return e;
 }
 
 // ── Store ──
@@ -100,9 +107,7 @@ export class PromptStore {
         });
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes("UNIQUE constraint failed")) {
-        const e = new Error(`Prompt with name "${name}" already exists`);
-        (e as Error & { code: string }).code = "DUPLICATE";
-        throw e;
+        throw codedError(`Prompt with name "${name}" already exists`, "DUPLICATE");
       }
       throw err;
     }
@@ -180,9 +185,7 @@ export class PromptStore {
       .get({ name }) as { id: string } | undefined;
 
     if (!prompt) {
-      const e = new Error(`Prompt "${name}" not found`);
-      (e as Error & { code: string }).code = "NOT_FOUND";
-      throw e;
+      throw codedError(`Prompt "${name}" not found`, "NOT_FOUND");
     }
 
     const promptId = prompt.id;
@@ -251,9 +254,7 @@ export class PromptStore {
       .get({ name }) as { id: string } | undefined;
 
     if (!prompt) {
-      const e = new Error(`Prompt "${name}" not found`);
-      (e as Error & { code: string }).code = "NOT_FOUND";
-      throw e;
+      throw codedError(`Prompt "${name}" not found`, "NOT_FOUND");
     }
 
     const promptId = prompt.id;
@@ -265,9 +266,7 @@ export class PromptStore {
       .get({ promptId, version }) as { id: string } | undefined;
 
     if (!versionRow) {
-      const e = new Error(`Version ${version} not found for prompt "${name}"`);
-      (e as Error & { code: string }).code = "NOT_FOUND";
-      throw e;
+      throw codedError(`Version ${version} not found for prompt "${name}"`, "NOT_FOUND");
     }
 
     const activate = this.db.transaction(() => {
@@ -306,14 +305,5 @@ export class PromptStore {
       createdBy: row.created_by as string,
       createdAt: row.created_at as string,
     };
-  }
-}
-
-function safeJsonParse<T>(value: string | null | undefined, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
   }
 }

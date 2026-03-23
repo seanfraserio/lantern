@@ -76,9 +76,15 @@ class LanternTracer:
                 "Either 'exporter' or both 'api_key' and 'endpoint' must be provided."
             )
 
+        try:
+            from importlib.metadata import version as pkg_version
+            sdk_ver = pkg_version("lantern-ai")
+        except Exception:
+            sdk_ver = "unknown"
+
         self._source = TraceSource(
             service_name=self._service_name,
-            sdk_version="0.1.0",
+            sdk_version=sdk_ver,
             exporter_type=self._exporter.exporter_type,
         )
 
@@ -142,6 +148,7 @@ class LanternTracer:
 
     def end_trace(self, trace_id: str, status: TraceStatus = "success") -> None:
         """Finalize a trace and move it into the export buffer."""
+        should_flush = False
         with self._lock:
             trace = self._traces.get(trace_id)
             if trace is None:
@@ -154,8 +161,10 @@ class LanternTracer:
             self._buffer.append(trace)
             del self._traces[trace_id]
 
-        # Auto-flush when buffer is full
-        if len(self._buffer) >= self._batch_size:
+            # Check inside lock to prevent double-flush race
+            should_flush = len(self._buffer) >= self._batch_size
+
+        if should_flush:
             self.flush()
 
     def get_trace(self, trace_id: str) -> Optional[Trace]:

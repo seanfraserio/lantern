@@ -12,14 +12,14 @@ COPY packages/api/ packages/api/
 COPY packages/enterprise/ packages/enterprise/
 
 # Install with shamefully-hoist for flat node_modules
-RUN pnpm install --frozen-lockfile --filter @lantern-ai/api... --filter @lantern-ai/enterprise... --filter @lantern-ai/enterprise-api... --shamefully-hoist
+RUN pnpm install --frozen-lockfile --filter @openlantern-ai/api... --filter @openlantern-ai/enterprise... --filter @openlantern-ai/enterprise-api... --shamefully-hoist
 
 # Build in dependency order
-RUN pnpm --filter @lantern-ai/sdk run build
-RUN pnpm --filter @lantern-ai/ingest run build
-RUN pnpm --filter @lantern-ai/enterprise run build
-RUN pnpm --filter @lantern-ai/api run build
-RUN pnpm --filter @lantern-ai/enterprise-api run build
+RUN pnpm --filter @openlantern-ai/sdk run build
+RUN pnpm --filter @openlantern-ai/ingest run build
+RUN pnpm --filter @openlantern-ai/enterprise run build
+RUN pnpm --filter @openlantern-ai/api run build
+RUN pnpm --filter @openlantern-ai/enterprise-api run build
 
 # Production image
 FROM node:20-alpine
@@ -32,5 +32,6 @@ COPY --from=base /app/packages/enterprise ./packages/enterprise
 
 USER node
 ENV PORT=8080
+ENV HOST=0.0.0.0
 EXPOSE 8080
 CMD ["node", "packages/enterprise/api/dist/cli.js"]

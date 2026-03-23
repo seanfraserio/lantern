@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Span, SpanType, SpanInput, SpanOutput } from "./types.js";
+import { getPricing } from "./collectors/_utils.js";
 
 /**
  * Builder for creating and managing spans.
@@ -55,22 +56,8 @@ export class AgentSpan {
   }
 }
 
-/**
- * Rough cost estimation based on model name.
- * Prices in USD per 1K tokens.
- */
 function estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-  const pricing: Record<string, { input: number; output: number }> = {
-    "claude-sonnet-4-5-20251001": { input: 0.003, output: 0.015 },
-    "claude-haiku-4-5-20251001": { input: 0.0008, output: 0.004 },
-    "claude-opus-4-5-20251001": { input: 0.015, output: 0.075 },
-    "gpt-4o": { input: 0.005, output: 0.015 },
-    "gpt-4o-mini": { input: 0.00015, output: 0.0006 },
-  };
-
-  // Default pricing if model not found
-  const prices = pricing[model] ?? { input: 0.001, output: 0.002 };
-
+  const prices = getPricing(model);
   return (
     (inputTokens / 1000) * prices.input +
     (outputTokens / 1000) * prices.output

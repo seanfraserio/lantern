@@ -1,4 +1,4 @@
-import type { Trace, Scorer, EvalScore, EvalRunResult, Regression } from "@lantern-ai/sdk";
+import type { Trace, Scorer, EvalScore, EvalRunResult, Regression } from "@openlantern-ai/sdk";
 import { BaselineManager } from "./baseline.js";
 
 /**

@@ -20,7 +20,7 @@ Get from zero to seeing your first trace in under five minutes. Pick **one** pat
 ```bash
 mkdir lantern-quickstart && cd lantern-quickstart
 npm init -y
-npm install @lantern-ai/sdk @anthropic-ai/sdk
+npm install @openlantern-ai/sdk @anthropic-ai/sdk
 ```
 
 ### 2. Set your environment variables
@@ -38,7 +38,7 @@ import {
   LanternTracer,
   LanternExporter,
   wrapAnthropicClient,
-} from "@lantern-ai/sdk";
+} from "@openlantern-ai/sdk";
 
 // 1. Create a tracer that exports to Lantern
 const tracer = new LanternTracer({
@@ -239,6 +239,229 @@ print("Response:", response.content[0].text)
 ### 4. View the trace
 
 Open [openlanternai-dashboard.pages.dev](https://openlanternai-dashboard.pages.dev). Every request through the proxy generates a trace automatically.
+
+---
+
+## Path D: Groq via OpenAI-Compatible Wrapper (TypeScript)
+
+### 1. Create a project and install dependencies
+
+```bash
+mkdir lantern-quickstart && cd lantern-quickstart
+npm init -y
+npm install @openlantern-ai/sdk openai
+```
+
+### 2. Set your environment variables
+
+```bash
+export GROQ_API_KEY="gsk_..."
+export LANTERN_API_KEY="ltn_..."
+```
+
+### 3. Create `agent.ts`
+
+```typescript
+import OpenAI from "openai";
+import {
+  LanternTracer,
+  LanternExporter,
+  wrapOpenAICompatClient,
+} from "@openlantern-ai/sdk";
+
+// 1. Create a tracer that exports to Lantern
+const tracer = new LanternTracer({
+  serviceName: "groq-agent",
+  environment: "development",
+  exporter: new LanternExporter({
+    endpoint: "https://ingest.openlanternai.com",
+    apiKey: process.env.LANTERN_API_KEY,
+  }),
+});
+
+// 2. Create an OpenAI client pointed at Groq's API
+const groq = new OpenAI({
+  baseURL: "https://api.groq.com/openai/v1",
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+// 3. Wrap with the provider label for correct cost attribution
+const client = wrapOpenAICompatClient(groq, tracer, { provider: "groq" });
+
+// 4. Make an LLM call
+const response = await client.chat.completions.create({
+  model: "llama-3.1-70b-versatile",
+  messages: [
+    {
+      role: "user",
+      content: "Classify this support ticket: 'My invoice is wrong'. Reply with one word: billing, technical, or general.",
+    },
+  ],
+});
+
+console.log("Response:", response.choices[0].message.content);
+
+// 5. Flush traces and shut down
+await tracer.shutdown();
+console.log("Trace sent to Lantern.");
+```
+
+### 4. Run it
+
+```bash
+npx tsx agent.ts
+```
+
+### 5. View the trace
+
+Open [openlanternai-dashboard.pages.dev](https://openlanternai-dashboard.pages.dev). The trace shows the provider as "groq" with model-specific pricing.
+
+---
+
+## Path E: LangChain (TypeScript)
+
+### 1. Create a project and install dependencies
+
+```bash
+mkdir lantern-quickstart && cd lantern-quickstart
+npm init -y
+npm install @openlantern-ai/sdk @langchain/openai @langchain/core
+```
+
+### 2. Set your environment variables
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export LANTERN_API_KEY="ltn_..."
+```
+
+### 3. Create `agent.ts`
+
+```typescript
+import { ChatOpenAI } from "@langchain/openai";
+import {
+  LanternTracer,
+  LanternExporter,
+  createLanternCallbackHandler,
+} from "@openlantern-ai/sdk";
+
+// 1. Create a tracer
+const tracer = new LanternTracer({
+  serviceName: "langchain-agent",
+  environment: "development",
+  exporter: new LanternExporter({
+    endpoint: "https://ingest.openlanternai.com",
+    apiKey: process.env.LANTERN_API_KEY,
+  }),
+});
+
+// 2. Create the Lantern callback handler
+const handler = createLanternCallbackHandler(tracer);
+
+// 3. Pass the handler to LangChain via callbacks
+const model = new ChatOpenAI({
+  modelName: "gpt-4o",
+  callbacks: [handler],
+});
+
+// 4. Make a call — the callback handler traces it automatically
+const response = await model.invoke("Classify this support ticket: 'My invoice is wrong'. Reply with one word: billing, technical, or general.");
+
+console.log("Response:", response.content);
+
+await tracer.shutdown();
+console.log("Trace sent to Lantern.");
+```
+
+### 4. Run it
+
+```bash
+npx tsx agent.ts
+```
+
+### 5. View the trace
+
+Open [openlanternai-dashboard.pages.dev](https://openlanternai-dashboard.pages.dev). LangChain traces capture the full chain execution with LLM spans nested under the chain.
+
+---
+
+## Path F: CrewAI (Python)
+
+### 1. Create a project and install dependencies
+
+```bash
+mkdir lantern-quickstart && cd lantern-quickstart
+python -m venv .venv
+source .venv/bin/activate
+pip install lantern-ai[crewai] crewai
+```
+
+### 2. Set your environment variables
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export LANTERN_API_KEY="ltn_..."
+```
+
+### 3. Create `agent.py`
+
+```python
+import os
+from crewai import Agent, Task, Crew
+from lantern_ai import LanternTracer
+from lantern_ai.collectors.crewai import create_lantern_crewai_handler
+from lantern_ai.exporters import LanternExporter
+
+# 1. Create a tracer
+tracer = LanternTracer(
+    service_name="crew-agent",
+    environment="development",
+    exporter=LanternExporter(
+        endpoint="https://ingest.openlanternai.com",
+        api_key=os.environ["LANTERN_API_KEY"],
+    ),
+)
+
+# 2. Create the CrewAI handler
+handler = create_lantern_crewai_handler(tracer)
+
+# 3. Define your crew
+classifier = Agent(
+    role="Ticket Classifier",
+    goal="Classify support tickets accurately",
+    backstory="You are a support ticket classifier.",
+)
+
+task = Task(
+    description="Classify this support ticket: 'My invoice is wrong'. Reply with one word: billing, technical, or general.",
+    agent=classifier,
+)
+
+crew = Crew(
+    agents=[classifier],
+    tasks=[task],
+    step_callback=handler,
+)
+
+# 4. Run the crew — all steps are traced
+result = crew.kickoff()
+print("Result:", result)
+
+# 5. Flush and shut down
+handler.finish()
+tracer.shutdown()
+print("Trace sent to Lantern.")
+```
+
+### 4. Run it
+
+```bash
+python agent.py
+```
+
+### 5. View the trace
+
+Open [openlanternai-dashboard.pages.dev](https://openlanternai-dashboard.pages.dev). CrewAI traces show agent tasks, LLM calls, and tool invocations as nested spans.
 
 ---
 

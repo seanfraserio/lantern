@@ -167,7 +167,7 @@ Now point your SDK at the local ingest server instead of the cloud endpoint.
 **TypeScript:**
 
 ```typescript
-import { LanternTracer, LanternExporter } from "@lantern-ai/sdk";
+import { LanternTracer, LanternExporter } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   serviceName: "my-agent",

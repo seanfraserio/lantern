@@ -31,7 +31,7 @@ Each step becomes a span in Lantern, giving you full visibility into the reasoni
 ```bash
 mkdir lantern-ts-tutorial && cd lantern-ts-tutorial
 npm init -y
-npm install @lantern-ai/sdk @anthropic-ai/sdk
+npm install @openlantern-ai/sdk @anthropic-ai/sdk
 ```
 
 Set your environment variables:
@@ -53,7 +53,7 @@ import {
   LanternTracer,
   LanternExporter,
   wrapAnthropicClient,
-} from "@lantern-ai/sdk";
+} from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   serviceName: "support-agent",
@@ -285,7 +285,7 @@ The SDK also supports OpenAI. Swap the client wrapper:
 
 ```typescript
 import OpenAI from "openai";
-import { LanternTracer, LanternExporter, wrapOpenAIClient } from "@lantern-ai/sdk";
+import { LanternTracer, LanternExporter, wrapOpenAIClient } from "@openlantern-ai/sdk";
 
 const tracer = new LanternTracer({
   serviceName: "support-agent",
