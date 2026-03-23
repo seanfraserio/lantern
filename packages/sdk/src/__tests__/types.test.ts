@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type {
   Trace,
-  TraceSource,
   TraceStatus,
   Span,
   SpanType,
@@ -12,7 +11,6 @@ import type {
   ITraceExporter,
   StartTraceOpts,
   StartSpanOpts,
-  ITraceStore,
   TraceQueryFilter,
   TraceIngestRequest,
   TraceIngestResponse,

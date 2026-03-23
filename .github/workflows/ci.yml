@@ -19,8 +19,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level=high
-      - run: pnpm typecheck
       - run: pnpm build
+      - run: pnpm typecheck
       - name: Lint
         run: pnpm lint
       - name: Test with coverage

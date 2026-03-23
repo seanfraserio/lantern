@@ -348,9 +348,12 @@ async function handleStreaming(
   // Read chunks from the upstream and push to both the client and our collector
   (async () => {
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      let done = false;
+      while (!done) {
+        const result = await reader.read();
+        done = result.done ?? false;
+        const value = result.value;
+        if (done || !value) break;
 
         // Push to the client
         passthrough.push(value);

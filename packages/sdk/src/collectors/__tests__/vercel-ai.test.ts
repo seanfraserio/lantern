@@ -36,7 +36,6 @@ describe("wrapGenerateText", () => {
 
   it("creates span with correct input from messages", async () => {
     const fn = mockGenerateText(baseResponse);
-    const wrapped = wrapGenerateText(fn, tracer);
 
     const traceObj = tracer.startTrace({ agentName: "test-agent" });
     const wrappedWithTrace = wrapGenerateText(fn, tracer, { traceId: traceObj.id });
@@ -234,6 +233,7 @@ describe("wrapStreamText", () => {
     const result = wrapped({ model: "gpt-4", prompt: "Hi" });
 
     // Consume the stream
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for await (const _ of result.textStream) {
       // drain
     }
@@ -249,7 +249,8 @@ describe("wrapStreamText", () => {
     const wrapped = wrapStreamText(fn, tracer, { traceId: traceObj.id });
 
     const result = wrapped({ model: "gpt-4", prompt: "Hi" });
-    for await (const _ of result.textStream) {}
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-empty
+    for await (const _ of result.textStream) { /* drain */ }
 
     const trace = tracer.getTrace(traceObj.id);
     const span = trace!.spans[0];

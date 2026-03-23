@@ -135,7 +135,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     };
     const usageCache = new Map<string, { count: number; plan: string; checkedAt: number }>();
 
-    async function checkUsageLimit(tenantId: string): Promise<{ allowed: boolean; plan: string; count: number; limit: number }> {
+    const checkUsageLimit = async (tenantId: string): Promise<{ allowed: boolean; plan: string; count: number; limit: number }> => {
       const cached = usageCache.get(tenantId);
       // Re-check every 60 seconds
       if (cached && Date.now() - cached.checkedAt < 60_000) {
@@ -158,7 +158,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
 
       usageCache.set(tenantId, { count, plan, checkedAt: Date.now() });
       return { allowed: count < limit, plan, count, limit };
-    }
+    };
 
     app.addHook("onRequest", async (request, reply) => {
       if (!request.url.startsWith("/v1/")) return;

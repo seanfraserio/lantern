@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { TenantResolver } from "../../middleware/tenant.js";
 
@@ -43,7 +43,7 @@ describe("TenantResolver", () => {
 
       await resolver.resolve(TEST_API_KEY);
 
-      const [_sql, params] = pool.query.mock.calls[0] as [string, string[]];
+      const [, params] = pool.query.mock.calls[0] as [string, string[]];
       expect(params[0]).toBe(TEST_KEY_HASH);
     });
   });

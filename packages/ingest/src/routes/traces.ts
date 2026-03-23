@@ -36,7 +36,7 @@ function getStore(request: FastifyRequest, defaultStore: ITraceStore): ITraceSto
   return ((request as unknown as Record<string, unknown>).tenantStore as ITraceStore) ?? defaultStore;
 }
 
-export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceStore, multiTenant?: boolean): void {
+export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceStore, _multiTenant?: boolean): void {
   // POST /v1/traces — ingest traces
   app.post<{ Body: TraceIngestRequest }>("/v1/traces", async (request, reply) => {
     const { traces } = request.body;
