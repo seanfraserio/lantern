@@ -130,7 +130,9 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     // Usage limit cache: { tenantId -> { count, checkedAt } }
     const PLAN_LIMITS: Record<string, number> = {
       free: 10_000,
+      starter: 100_000, // legacy
       team: 1_000_000,
+      team_plus: 5_000_000,
       enterprise: 999_999_999, // effectively unlimited
     };
     const usageCache = new Map<string, { count: number; plan: string; checkedAt: number }>();
