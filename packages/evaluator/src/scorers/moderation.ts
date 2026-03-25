@@ -48,7 +48,7 @@ export class ModerationScorer implements Scorer {
     }
 
     if (outputs.length === 0) {
-      return { scorer: this.name, score: 1, label: "no_data", detail: "No output spans to moderate" };
+      return { scorer: this.name, score: 1, label: "no_data", reasoning: "No output spans to moderate" };
     }
 
     const prompt = this.promptTemplate.replace("{{output}}", outputs.join("\n---\n"));
@@ -56,9 +56,9 @@ export class ModerationScorer implements Scorer {
     try {
       const raw = await this.judge.generate(prompt);
       const { score, label, reasoning } = parseJudgeResponse(raw);
-      return { scorer: this.name, score, label, detail: reasoning };
+      return { scorer: this.name, score, label, reasoning: reasoning };
     } catch (error) {
-      return { scorer: this.name, score: 0, label: "error", detail: `Judge failed: ${error}` };
+      return { scorer: this.name, score: 0, label: "error", reasoning: `Judge failed: ${error}` };
     }
   }
 }

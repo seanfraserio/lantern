@@ -28,7 +28,7 @@ describe("ToxicityScorer", () => {
 
       expect(result.score).toBe(1.0);
       expect(result.label).toBe("clean");
-      expect(result.detail).toBe("No output to analyze");
+      expect(result.reasoning).toBe("No output to analyze");
     });
 
     it("scores 1.0 when spans have no output content", async () => {
@@ -55,7 +55,7 @@ describe("ToxicityScorer", () => {
       const result = await scorer.score(trace);
       expect(result.score).toBe(0.9);
       expect(result.label).toBe("clean"); // 0.9 >= 0.9 -> clean
-      expect(result.detail).toContain("1 potentially toxic term");
+      expect(result.reasoning).toContain("1 potentially toxic term");
     });
 
     it("detects multiple toxic words across patterns", async () => {
@@ -69,7 +69,7 @@ describe("ToxicityScorer", () => {
       // Actually \b(attack)\b won't match "attacked" since "ed" follows
       // So: "stupid" + "idiot" = 2 matches => 1.0 - 0.2 = 0.8
       expect(result.score).toBeLessThan(1.0);
-      expect(result.detail).toContain("potentially toxic term");
+      expect(result.reasoning).toContain("potentially toxic term");
     });
 
     it("scores 0.0 (floor) when 10+ toxic terms found", async () => {

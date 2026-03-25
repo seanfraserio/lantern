@@ -18,7 +18,7 @@ export class LatencyScorer implements Scorer {
     const durationMs = trace.durationMs;
 
     if (durationMs === undefined) {
-      return { scorer: this.name, score: 0, label: "unknown", detail: "Trace has no duration" };
+      return { scorer: this.name, score: 0, label: "unknown", reasoning: "Trace has no duration" };
     }
 
     // Linear scale: fast = 1.0, slow = 0.0
@@ -41,7 +41,7 @@ export class LatencyScorer implements Scorer {
       scorer: this.name,
       score,
       label,
-      detail: `${durationMs}ms (thresholds: fast=${this.fastMs}ms, slow=${this.slowMs}ms)`,
+      reasoning: `${durationMs}ms (thresholds: fast=${this.fastMs}ms, slow=${this.slowMs}ms)`,
     };
   }
 }

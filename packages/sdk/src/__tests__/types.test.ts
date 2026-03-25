@@ -107,7 +107,7 @@ describe("types", () => {
       scorer: "toxicity",
       score: 0.95,
       label: "safe",
-      detail: "No harmful content",
+      reasoning: "No harmful content",
     };
     expect(score.scorer).toBe("toxicity");
   });

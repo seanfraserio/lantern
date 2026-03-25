@@ -147,7 +147,7 @@ class TestEvalScoreDict:
         assert d["score"] == 0.9
 
     def test_optional_fields(self):
-        es = EvalScore(scorer="s", score=1.0, label="good", detail="looks great")
+        es = EvalScore(scorer="s", score=1.0, label="good", reasoning="looks great")
         d = es.to_dict()
         assert d["label"] == "good"
-        assert d["detail"] == "looks great"
+        assert d["reasoning"] == "looks great"

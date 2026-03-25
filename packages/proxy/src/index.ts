@@ -3,6 +3,7 @@ export type { ProxyConfig } from "./server.js";
 export { registerProxyRoutes } from "./proxy.js";
 export { buildTrace } from "./trace-builder.js";
 export type { CapturedData } from "./trace-builder.js";
+export type { ProviderCapture } from "./types.js";
 export {
   parseAnthropicRequest,
   parseAnthropicResponse,

@@ -65,14 +65,14 @@ class EvalScore:
     scorer: str
     score: float
     label: Optional[str] = None
-    detail: Optional[str] = None
+    reasoning: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {"scorer": self.scorer, "score": self.score}
         if self.label is not None:
             d["label"] = self.label
-        if self.detail is not None:
-            d["detail"] = self.detail
+        if self.reasoning is not None:
+            d["reasoning"] = self.reasoning
         return d
 
 

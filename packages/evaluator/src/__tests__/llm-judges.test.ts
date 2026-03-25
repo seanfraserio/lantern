@@ -92,7 +92,7 @@ describe("HallucinationScorer", () => {
 
     const result = await scorer.score(trace);
     expect(result.label).toBe("error");
-    expect(result.detail).toContain("API timeout");
+    expect(result.reasoning).toContain("API timeout");
   });
 
   it("sends input and output to the judge", async () => {

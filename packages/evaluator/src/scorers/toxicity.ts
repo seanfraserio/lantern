@@ -23,7 +23,7 @@ export class ToxicityScorer implements Scorer {
     }
 
     if (outputs.length === 0) {
-      return { scorer: this.name, score: 1.0, label: "clean", detail: "No output to analyze" };
+      return { scorer: this.name, score: 1.0, label: "clean", reasoning: "No output to analyze" };
     }
 
     const fullOutput = outputs.join(" ");
@@ -48,7 +48,7 @@ export class ToxicityScorer implements Scorer {
       scorer: this.name,
       score,
       label,
-      detail: toxicCount > 0 ? `Found ${toxicCount} potentially toxic term(s)` : undefined,
+      reasoning: toxicCount > 0 ? `Found ${toxicCount} potentially toxic term(s)` : undefined,
     };
   }
 }

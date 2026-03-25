@@ -6,18 +6,18 @@ import type { SpanType, SpanOutput } from "../types.js";
 const INPUT_TOKEN_FIELDS = ["input_tokens", "prompt_tokens", "promptTokens", "promptTokenCount"];
 const OUTPUT_TOKEN_FIELDS = ["output_tokens", "completion_tokens", "completionTokens", "candidatesTokenCount"];
 
-function findField(obj: Record<string, unknown>, fields: string[]): number {
-  for (const f of fields) {
-    if (typeof obj[f] === "number") return obj[f] as number;
-  }
-  return 0;
-}
-
 export function normalizeTokens(raw: Record<string, unknown>): { inputTokens: number; outputTokens: number } {
-  return {
-    inputTokens: findField(raw, INPUT_TOKEN_FIELDS),
-    outputTokens: findField(raw, OUTPUT_TOKEN_FIELDS),
-  };
+  let inputTokens = 0;
+  for (const f of INPUT_TOKEN_FIELDS) {
+    if (typeof raw[f] === "number") { inputTokens = raw[f] as number; break; }
+  }
+
+  let outputTokens = 0;
+  for (const f of OUTPUT_TOKEN_FIELDS) {
+    if (typeof raw[f] === "number") { outputTokens = raw[f] as number; break; }
+  }
+
+  return { inputTokens, outputTokens };
 }
 
 // ─── Pricing ───
@@ -123,12 +123,6 @@ export function normalizeMessages(messages: unknown[]): Array<{ role: string; co
 
     return { role, content: content != null ? String(content) : "" };
   });
-}
-
-// ─── Span Input Builder ───
-
-export function buildSpanInput(params: Record<string, unknown>): string {
-  return JSON.stringify(params, null, 0);
 }
 
 // ─── Trace Lifecycle Wrapper ───

@@ -7,18 +7,14 @@ export interface PromptData {
 }
 
 export class Prompt {
-  readonly name: string;
-  readonly version: number;
-  readonly content: string;
+  readonly name!: string;
+  readonly version!: number;
+  readonly content!: string;
   readonly model?: string;
-  readonly variables: string[];
+  readonly variables!: string[];
 
   constructor(data: PromptData) {
-    this.name = data.name;
-    this.version = data.version;
-    this.content = data.content;
-    this.model = data.model;
-    this.variables = data.variables;
+    Object.assign(this, data);
   }
 
   /**

@@ -27,7 +27,7 @@ export class RelevanceScorer implements Scorer {
     }
 
     if (inputs.length === 0 || outputs.length === 0) {
-      return { scorer: this.name, score: 0, label: "no_data", detail: "No input/output spans found" };
+      return { scorer: this.name, score: 0, label: "no_data", reasoning: "No input/output spans found" };
     }
 
     // Simple term overlap heuristic

@@ -7,16 +7,11 @@
  * - SSE: data: { choices: [{ delta: { content } }] } ... data: [DONE]
  */
 
+import type { ProviderCapture } from "../types.js";
+
 export const OPENAI_BASE_URL = "https://api.openai.com";
 
-export interface OpenAICapture {
-  model: string;
-  inputMessages: Array<{ role: string; content: string }>;
-  outputContent: string;
-  inputTokens: number;
-  outputTokens: number;
-  stopReason: string | null;
-}
+export type OpenAICapture = ProviderCapture;
 
 export function parseOpenAIRequest(body: unknown): {
   model: string;

@@ -7,16 +7,11 @@
  * - SSE events: message_start, content_block_start, content_block_delta, message_delta, message_stop
  */
 
+import type { ProviderCapture } from "../types.js";
+
 export const ANTHROPIC_BASE_URL = "https://api.anthropic.com";
 
-export interface AnthropicCapture {
-  model: string;
-  inputMessages: Array<{ role: string; content: string }>;
-  outputContent: string;
-  inputTokens: number;
-  outputTokens: number;
-  stopReason: string | null;
-}
+export type AnthropicCapture = ProviderCapture;
 
 export function parseAnthropicRequest(body: unknown): {
   model: string;

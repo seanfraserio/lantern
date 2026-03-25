@@ -11,16 +11,11 @@
  * - Token counts are nested at meta.billedUnits.inputTokens/outputTokens
  */
 
+import type { ProviderCapture } from "../types.js";
+
 export const COHERE_BASE_URL = "https://api.cohere.com";
 
-export interface CohereCapture {
-  model: string;
-  inputMessages: Array<{ role: string; content: string }>;
-  outputContent: string;
-  inputTokens: number;
-  outputTokens: number;
-  stopReason: string | null;
-}
+export type CohereCapture = ProviderCapture;
 
 export function parseCohereRequest(body: unknown): {
   model: string;

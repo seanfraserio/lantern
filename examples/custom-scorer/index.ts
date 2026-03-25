@@ -39,7 +39,7 @@ class ConcisenessScorer implements Scorer {
       scorer: this.name,
       score,
       label: score >= 0.8 ? "concise" : score >= 0.5 ? "moderate" : "verbose",
-      detail: `Average output length: ${Math.round(avgLength)} chars`,
+      reasoning: `Average output length: ${Math.round(avgLength)} chars`,
     };
   }
 }

@@ -52,7 +52,7 @@ export class AnswerRelevanceScorer implements Scorer {
     }
 
     if (userMessages.length === 0 || outputs.length === 0) {
-      return { scorer: this.name, score: 0, label: "no_data", detail: "No user messages or outputs found" };
+      return { scorer: this.name, score: 0, label: "no_data", reasoning: "No user messages or outputs found" };
     }
 
     const prompt = this.promptTemplate
@@ -62,9 +62,9 @@ export class AnswerRelevanceScorer implements Scorer {
     try {
       const raw = await this.judge.generate(prompt);
       const { score, label, reasoning } = parseJudgeResponse(raw);
-      return { scorer: this.name, score, label, detail: reasoning };
+      return { scorer: this.name, score, label, reasoning: reasoning };
     } catch (error) {
-      return { scorer: this.name, score: 0, label: "error", detail: `Judge failed: ${error}` };
+      return { scorer: this.name, score: 0, label: "error", reasoning: `Judge failed: ${error}` };
     }
   }
 }

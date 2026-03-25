@@ -17,7 +17,7 @@ describe("LatencyScorer", () => {
       expect(result.scorer).toBe("latency");
       expect(result.score).toBe(1.0);
       expect(result.label).toBe("fast");
-      expect(result.detail).toContain("500ms");
+      expect(result.reasoning).toContain("500ms");
     });
 
     it("scores 1.0 for traces exactly at the fast threshold", async () => {
@@ -67,7 +67,7 @@ describe("LatencyScorer", () => {
 
       expect(result.score).toBe(0);
       expect(result.label).toBe("unknown");
-      expect(result.detail).toBe("Trace has no duration");
+      expect(result.reasoning).toBe("Trace has no duration");
     });
   });
 
@@ -127,27 +127,27 @@ describe("LatencyScorer", () => {
       expect(mid.score).toBe(0.5);
     });
 
-    it("includes thresholds in detail message", async () => {
+    it("includes thresholds in reasoning message", async () => {
       const scorer = new LatencyScorer({ fastMs: 200, slowMs: 5000 });
       const result = await scorer.score(makeTrace({ durationMs: 1000 }));
 
-      expect(result.detail).toContain("fast=200ms");
-      expect(result.detail).toContain("slow=5000ms");
-      expect(result.detail).toContain("1000ms");
+      expect(result.reasoning).toContain("fast=200ms");
+      expect(result.reasoning).toContain("slow=5000ms");
+      expect(result.reasoning).toContain("1000ms");
     });
 
     it("allows only fastMs to be customized", async () => {
       const scorer = new LatencyScorer({ fastMs: 500 });
       const result = await scorer.score(makeTrace({ durationMs: 500 }));
       expect(result.score).toBe(1.0);
-      expect(result.detail).toContain("slow=10000ms"); // default slow
+      expect(result.reasoning).toContain("slow=10000ms"); // default slow
     });
 
     it("allows only slowMs to be customized", async () => {
       const scorer = new LatencyScorer({ slowMs: 5000 });
       const result = await scorer.score(makeTrace({ durationMs: 5000 }));
       expect(result.score).toBe(0.0);
-      expect(result.detail).toContain("fast=1000ms"); // default fast
+      expect(result.reasoning).toContain("fast=1000ms"); // default fast
     });
   });
 

@@ -10,16 +10,11 @@
  * (promptTokens/completionTokens) instead of snake_case.
  */
 
+import type { ProviderCapture } from "../types.js";
+
 export const MISTRAL_BASE_URL = "https://api.mistral.ai";
 
-export interface MistralCapture {
-  model: string;
-  inputMessages: Array<{ role: string; content: string }>;
-  outputContent: string;
-  inputTokens: number;
-  outputTokens: number;
-  stopReason: string | null;
-}
+export type MistralCapture = ProviderCapture;
 
 export function parseMistralRequest(body: unknown): {
   model: string;

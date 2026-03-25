@@ -682,7 +682,7 @@ class EvalScore:
     scorer: str
     score: float
     label: Optional[str] = None
-    detail: Optional[str] = None
+    reasoning: Optional[str] = None
 ```
 
 ---

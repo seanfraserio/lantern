@@ -147,7 +147,7 @@ describe("RelevanceScorer", () => {
 
       expect(result.score).toBe(0);
       expect(result.label).toBe("no_data");
-      expect(result.detail).toBe("No input/output spans found");
+      expect(result.reasoning).toBe("No input/output spans found");
     });
 
     it("returns score 0 when spans have no LLM calls", async () => {

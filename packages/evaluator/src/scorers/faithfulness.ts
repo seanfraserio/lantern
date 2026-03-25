@@ -55,10 +55,10 @@ export class FaithfulnessScorer implements Scorer {
     }
 
     if (contexts.length === 0) {
-      return { scorer: this.name, score: 0, label: "no_context", detail: "No retrieval spans found — faithfulness requires RAG context" };
+      return { scorer: this.name, score: 0, label: "no_context", reasoning: "No retrieval spans found — faithfulness requires RAG context" };
     }
     if (outputs.length === 0) {
-      return { scorer: this.name, score: 0, label: "no_data", detail: "No LLM output spans found" };
+      return { scorer: this.name, score: 0, label: "no_data", reasoning: "No LLM output spans found" };
     }
 
     const prompt = this.promptTemplate
@@ -68,9 +68,9 @@ export class FaithfulnessScorer implements Scorer {
     try {
       const raw = await this.judge.generate(prompt);
       const { score, label, reasoning } = parseJudgeResponse(raw);
-      return { scorer: this.name, score, label, detail: reasoning };
+      return { scorer: this.name, score, label, reasoning: reasoning };
     } catch (error) {
-      return { scorer: this.name, score: 0, label: "error", detail: `Judge failed: ${error}` };
+      return { scorer: this.name, score: 0, label: "error", reasoning: `Judge failed: ${error}` };
     }
   }
 }

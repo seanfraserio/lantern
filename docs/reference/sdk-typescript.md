@@ -477,7 +477,7 @@ interface EvalScore {
   scorer: string;
   score: number;
   label?: string;
-  detail?: string;
+  reasoning?: string;
 }
 ```
 
