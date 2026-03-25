@@ -36,11 +36,11 @@ jobs:
         with:
           generate_release_notes: true
 
-      # ── npm publish (skips private packages like @openlantern-ai/ingest) ──
+      # ── npm publish (pnpm -r publish skips "private":true packages by default) ──
       - name: Publish to npm
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
-          pnpm publish -r --no-private --access public || true
+          pnpm -r publish --access public || true
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
