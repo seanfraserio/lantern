@@ -1,0 +1,24 @@
+# Lantern config for benchmarking.
+# Uses SQLite (local, no external DB needed) with generous limits.
+
+version: "1"
+
+server:
+  port: 4100
+  host: 127.0.0.1
+  log_level: warn  # reduce log noise during benchmarks
+
+storage:
+  type: sqlite
+  path: ./lantern-bench.db
+
+auth:
+  enabled: true
+  api_keys:
+    - "bench-ingest-key"
+
+prompts:
+  enabled: false  # not benchmarking prompts
+
+retention:
+  default_days: 1  # short retention for bench data
