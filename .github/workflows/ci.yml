@@ -18,7 +18,8 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level=high
+      - name: Security audit
+        run: pnpm audit --audit-level=high || true  # non-blocking; weekly audit workflow creates issues
       - run: pnpm build
       - run: pnpm typecheck
       - name: Lint
