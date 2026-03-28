@@ -100,7 +100,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     },
   });
 
-  await app.register(compress, { global: true });
+  await app.register(compress as any, { global: true });
 
   // Observability: send metrics + logs to Grafana Cloud via OTLP
   registerObservability(app, "lantern-ingest");
