@@ -309,6 +309,9 @@ importers:
       '@google-cloud/pubsub':
         specifier: ^5.3.0
         version: 5.3.0
+      '@google-cloud/tasks':
+        specifier: ^6.2.1
+        version: 6.2.1
       '@openlantern-ai/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -1500,6 +1503,10 @@ packages:
 
   '@google-cloud/pubsub@5.3.0':
     resolution: {integrity: sha512-hyUoE85Rj3rRUVk3VU+Selp4MorBwEzsQEqAj6+SE+WabR9LIFitYS6A4R+PyiwVaRk/tggGD8p7bNiIY5sk4w==}
+    engines: {node: '>=18'}
+
+  '@google-cloud/tasks@6.2.1':
+    resolution: {integrity: sha512-Y21jNAdaUwZvYQijJSE9E27NA87c/Wl9fZxNDGx6WsWFFGEBmJmc1zg2fXLXTW0kPvKIxHQC+IcKa9SNgvIEsQ==}
     engines: {node: '>=18'}
 
   '@grpc/grpc-js@1.14.3':
@@ -8868,6 +8875,12 @@ snapshots:
       is-stream-ended: 0.1.4
       lodash.snakecase: 4.1.1
       p-defer: 3.0.0
+    transitivePeerDependencies:
+      - supports-color
+
+  '@google-cloud/tasks@6.2.1':
+    dependencies:
+      google-gax: 5.0.6
     transitivePeerDependencies:
       - supports-color
 
