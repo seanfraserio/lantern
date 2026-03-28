@@ -1,6 +1,20 @@
 import yaml from "js-yaml";
 import fs from "node:fs";
 
+export interface PubSubIngestionConfig {
+  enabled: boolean;
+  subscription_name: string;
+  project_id?: string;
+}
+
+export interface CloudTasksEvalConfig {
+  enabled: boolean;
+  project_id: string;
+  location: string;
+  queue: string;
+  worker_url: string;
+}
+
 export interface LanternConfig {
   version: "1";
   server: {
@@ -26,6 +40,12 @@ export interface LanternConfig {
   };
   retention?: {
     default_days: number;
+  };
+  ingestion?: {
+    pubsub?: PubSubIngestionConfig;
+  };
+  evaluation?: {
+    cloud_tasks?: CloudTasksEvalConfig;
   };
 }
 
@@ -77,6 +97,8 @@ export function loadConfig(filePath?: string): LanternConfig {
     auth?: LanternConfig["auth"];
     prompts?: Partial<NonNullable<LanternConfig["prompts"]>>;
     retention?: Partial<NonNullable<LanternConfig["retention"]>>;
+    ingestion?: LanternConfig["ingestion"];
+    evaluation?: LanternConfig["evaluation"];
   };
 
   // Deep merge with defaults
@@ -92,5 +114,7 @@ export function loadConfig(filePath?: string): LanternConfig {
     retention: {
       default_days: p.retention?.default_days ?? DEFAULTS.retention!.default_days,
     },
+    ingestion: p.ingestion,
+    evaluation: p.evaluation,
   };
 }

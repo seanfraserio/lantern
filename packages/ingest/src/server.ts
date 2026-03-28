@@ -9,6 +9,8 @@ import { registerObservability, recordMetric } from "./lib/observability.js";
 import { loadConfig } from "./config.js";
 import type { LanternConfig } from "./config.js";
 import type { ITraceStore } from "@openlantern-ai/sdk";
+import type { EvalTrigger } from "./triggers/eval-trigger.js";
+import type { PubSubTraceConsumer } from "./consumers/pubsub-consumer.js";
 
 export interface IngestServerConfig {
   port: number;
@@ -113,6 +115,44 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     reply.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
     reply.header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'");
   });
+
+  // ── Optional: Cloud Tasks evaluation trigger ──
+  let evalTrigger: EvalTrigger | undefined;
+  const evalConfig = yamlConfig.evaluation?.cloud_tasks;
+  if (evalConfig?.enabled) {
+    const { EvalTrigger: EvalTriggerImpl } = await import("./triggers/eval-trigger.js");
+    evalTrigger = new EvalTriggerImpl({
+      projectId: evalConfig.project_id,
+      location: evalConfig.location,
+      queue: evalConfig.queue,
+      workerUrl: evalConfig.worker_url,
+    });
+    console.log(`[lantern] Cloud Tasks eval trigger configured (queue: ${evalConfig.queue})`);
+  }
+
+  // ── Optional: Pub/Sub trace consumer ──
+  let pubsubConsumer: PubSubTraceConsumer | undefined;
+  const pubsubConfig = yamlConfig.ingestion?.pubsub;
+  if (pubsubConfig?.enabled && pubsubConfig?.subscription_name) {
+    const { PubSubTraceConsumer: PubSubConsumerImpl } = await import("./consumers/pubsub-consumer.js");
+    pubsubConsumer = new PubSubConsumerImpl({
+      store: defaultStore,
+      subscriptionName: pubsubConfig.subscription_name,
+      projectId: pubsubConfig.project_id,
+      onInsert: evalTrigger
+        ? (traces) => {
+            const jobs = traces
+              .filter((t) => t.status === "success")
+              .map((t) => ({ traceId: t.id, agentName: t.agentName }));
+            if (jobs.length > 0) {
+              evalTrigger!.enqueue(jobs).catch(console.error);
+            }
+          }
+        : undefined,
+    });
+    pubsubConsumer.start();
+    console.log(`[lantern] Pub/Sub consumer started on ${pubsubConfig.subscription_name}`);
+  }
 
   if (multiTenant && databaseUrl) {
     // ── Multi-tenant mode ──
@@ -228,7 +268,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     });
 
     // Register routes with tenant-aware store resolution
-    registerTraceRoutes(app, defaultStore, true);
+    registerTraceRoutes(app, defaultStore, true, evalTrigger);
     registerHealthRoutes(app, defaultStore);
     registerDashboardRoutes(app);
     registerPromptRoutes(app, promptStore);
@@ -256,10 +296,17 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
       });
     }
 
-    registerTraceRoutes(app, defaultStore, false);
+    registerTraceRoutes(app, defaultStore, false, evalTrigger);
     registerHealthRoutes(app, defaultStore);
     registerDashboardRoutes(app, apiKey);
     registerPromptRoutes(app, promptStore);
+  }
+
+  // Graceful shutdown for Pub/Sub consumer
+  if (pubsubConsumer) {
+    app.addHook("onClose", async () => {
+      await pubsubConsumer?.shutdown();
+    });
   }
 
   await app.listen({ port, host });

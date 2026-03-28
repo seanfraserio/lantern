@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { ITraceStore, TraceIngestRequest, TraceIngestResponse, TraceQueryFilter } from "@openlantern-ai/sdk";
+import type { EvalTrigger } from "../triggers/eval-trigger.js";
 import { recordMetric } from "../lib/observability.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -36,7 +37,7 @@ function getStore(request: FastifyRequest, defaultStore: ITraceStore): ITraceSto
   return ((request as unknown as Record<string, unknown>).tenantStore as ITraceStore) ?? defaultStore;
 }
 
-export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceStore, _multiTenant?: boolean): void {
+export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceStore, _multiTenant?: boolean, evalTrigger?: EvalTrigger): void {
   // POST /v1/traces — ingest traces
   app.post<{ Body: TraceIngestRequest }>("/v1/traces", async (request, reply) => {
     const { traces } = request.body;
@@ -84,6 +85,18 @@ export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceSt
       request.log.error(error, "Background trace insert failed");
       recordMetric("traces_insert_errors", 1, { tenant: tenantSlug ?? "single" });
     });
+
+    // Enqueue evaluation jobs for successful traces
+    if (evalTrigger) {
+      const jobs = traces
+        .filter((t) => t.status === "success")
+        .map((t) => ({ traceId: t.id, agentName: t.agentName }));
+      if (jobs.length > 0) {
+        evalTrigger.enqueue(jobs).catch((err) =>
+          request.log.error(err, "Failed to enqueue eval jobs")
+        );
+      }
+    }
 
     return reply.status(202).send({
       accepted: traces.length,
