@@ -16,6 +16,7 @@ export type { LanternExporterConfig } from "./exporters/lantern.js";
 export { ConsoleExporter } from "./exporters/console.js";
 export { OtlpExporter } from "./exporters/otlp.js";
 export type { OtlpExporterConfig } from "./exporters/otlp.js";
+export { PubSubExporter, type PubSubExporterConfig } from "./exporters/pubsub.js";
 export type {
   Trace,
   TraceSource,
