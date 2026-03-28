@@ -209,6 +209,8 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
 
     app.addHook("onRequest", async (request, reply) => {
       if (!request.url.startsWith("/v1/")) return;
+      // Pub/Sub push endpoint uses GCP OIDC auth at Cloud Run level, not Lantern API keys
+      if (request.url.startsWith("/v1/pubsub")) return;
 
       const auth = request.headers.authorization;
       if (!auth || !auth.startsWith("Bearer ")) {
