@@ -117,28 +117,33 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   });
 
   // ── Optional: Cloud Tasks evaluation trigger ──
+  // Supports both YAML config and environment variables
   let evalTrigger: EvalTrigger | undefined;
-  const evalConfig = yamlConfig.evaluation?.cloud_tasks;
-  if (evalConfig?.enabled) {
+  const evalEnabled = yamlConfig.evaluation?.cloud_tasks?.enabled || process.env.EVAL_CLOUD_TASKS_ENABLED === "true";
+  if (evalEnabled) {
+    const evalCfg = yamlConfig.evaluation?.cloud_tasks;
     const { EvalTrigger: EvalTriggerImpl } = await import("./triggers/eval-trigger.js");
     evalTrigger = new EvalTriggerImpl({
-      projectId: evalConfig.project_id,
-      location: evalConfig.location,
-      queue: evalConfig.queue,
-      workerUrl: evalConfig.worker_url,
+      projectId: evalCfg?.project_id ?? process.env.GCP_PROJECT_ID ?? "",
+      location: evalCfg?.location ?? process.env.EVAL_CLOUD_TASKS_LOCATION ?? "us-central1",
+      queue: evalCfg?.queue ?? process.env.EVAL_CLOUD_TASKS_QUEUE ?? "lantern-evals",
+      workerUrl: evalCfg?.worker_url ?? process.env.EVAL_WORKER_URL ?? "",
     });
-    console.log(`[lantern] Cloud Tasks eval trigger configured (queue: ${evalConfig.queue})`);
+    console.log(`[lantern] Cloud Tasks eval trigger configured`);
   }
 
   // ── Optional: Pub/Sub trace consumer ──
+  // Supports both YAML config and environment variables
   let pubsubConsumer: PubSubTraceConsumer | undefined;
-  const pubsubConfig = yamlConfig.ingestion?.pubsub;
-  if (pubsubConfig?.enabled && pubsubConfig?.subscription_name) {
+  const pubsubEnabled = yamlConfig.ingestion?.pubsub?.enabled || process.env.PUBSUB_ENABLED === "true";
+  const pubsubSubscription = yamlConfig.ingestion?.pubsub?.subscription_name ?? process.env.PUBSUB_SUBSCRIPTION;
+  if (pubsubEnabled && pubsubSubscription) {
+    const pubsubProjectId = yamlConfig.ingestion?.pubsub?.project_id ?? process.env.PUBSUB_PROJECT_ID ?? process.env.GCP_PROJECT_ID;
     const { PubSubTraceConsumer: PubSubConsumerImpl } = await import("./consumers/pubsub-consumer.js");
     pubsubConsumer = new PubSubConsumerImpl({
       store: defaultStore,
-      subscriptionName: pubsubConfig.subscription_name,
-      projectId: pubsubConfig.project_id,
+      subscriptionName: pubsubSubscription,
+      projectId: pubsubProjectId,
       onInsert: evalTrigger
         ? (traces) => {
             const jobs = traces
@@ -151,7 +156,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
         : undefined,
     });
     pubsubConsumer.start();
-    console.log(`[lantern] Pub/Sub consumer started on ${pubsubConfig.subscription_name}`);
+    console.log(`[lantern] Pub/Sub consumer started on ${pubsubSubscription}`);
   }
 
   if (multiTenant && databaseUrl) {
