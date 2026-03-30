@@ -12,23 +12,13 @@
  */
 
 import type { ProviderCapture } from "../types.js";
+import { parseProviderRequest, createUrlBuilder } from "./shared.js";
 
 export const COHERE_BASE_URL = "https://api.cohere.com";
 
 export type CohereCapture = ProviderCapture;
 
-export function parseCohereRequest(body: unknown): {
-  model: string;
-  messages: Array<{ role: string; content: string }>;
-  stream?: boolean;
-} {
-  const b = body as Record<string, unknown>;
-  return {
-    model: (b.model as string) ?? "unknown",
-    messages: (b.messages as Array<{ role: string; content: string }>) ?? [],
-    stream: b.stream as boolean | undefined,
-  };
-}
+export const parseCohereRequest = parseProviderRequest;
 
 export function parseCohereResponse(body: unknown): Partial<CohereCapture> {
   const b = body as Record<string, unknown>;
@@ -93,11 +83,8 @@ export function parseCohereSSEChunks(chunks: string[]): Partial<CohereCapture> {
  * Strips the /cohere prefix from the path.
  * Validates that the resulting path is safe (no traversal, must start with /v1/ or /v2/).
  */
-export function buildCohereUrl(path: string): string {
-  // /cohere/v1/chat -> /v1/chat
-  const stripped = path.replace(/^\/cohere/, "");
-  if (stripped.includes("..") || (!stripped.startsWith("/v1/") && !stripped.startsWith("/v2/"))) {
-    throw new Error(`Invalid API path: ${stripped}`);
-  }
-  return `${COHERE_BASE_URL}${stripped}`;
-}
+export const buildCohereUrl = createUrlBuilder({
+  pathPrefix: "/cohere",
+  baseUrl: COHERE_BASE_URL,
+  allowedPrefixes: ["/v1/", "/v2/"],
+});

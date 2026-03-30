@@ -11,23 +11,13 @@
  */
 
 import type { ProviderCapture } from "../types.js";
+import { parseProviderRequest, createUrlBuilder } from "./shared.js";
 
 export const MISTRAL_BASE_URL = "https://api.mistral.ai";
 
 export type MistralCapture = ProviderCapture;
 
-export function parseMistralRequest(body: unknown): {
-  model: string;
-  messages: Array<{ role: string; content: string }>;
-  stream?: boolean;
-} {
-  const b = body as Record<string, unknown>;
-  return {
-    model: (b.model as string) ?? "unknown",
-    messages: (b.messages as Array<{ role: string; content: string }>) ?? [],
-    stream: b.stream as boolean | undefined,
-  };
-}
+export const parseMistralRequest = parseProviderRequest;
 
 export function parseMistralResponse(body: unknown): Partial<MistralCapture> {
   const b = body as Record<string, unknown>;
@@ -94,11 +84,8 @@ export function parseMistralSSEChunks(chunks: string[]): Partial<MistralCapture>
  * Strips the /mistral prefix from the path.
  * Validates that the resulting path is safe (no traversal, must start with /v1/).
  */
-export function buildMistralUrl(path: string): string {
-  // /mistral/v1/chat/completions -> /v1/chat/completions
-  const stripped = path.replace(/^\/mistral/, "");
-  if (stripped.includes("..") || !stripped.startsWith("/v1/")) {
-    throw new Error(`Invalid API path: ${stripped}`);
-  }
-  return `${MISTRAL_BASE_URL}${stripped}`;
-}
+export const buildMistralUrl = createUrlBuilder({
+  pathPrefix: "/mistral",
+  baseUrl: MISTRAL_BASE_URL,
+  allowedPrefixes: ["/v1/"],
+});

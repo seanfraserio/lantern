@@ -9,26 +9,23 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { parseProviderRequest } from "./providers/shared.js";
 import {
-  parseAnthropicRequest,
   parseAnthropicResponse,
   parseAnthropicSSEChunks,
   buildAnthropicUrl,
 } from "./providers/anthropic.js";
 import {
-  parseOpenAIRequest,
   parseOpenAIResponse,
   parseOpenAISSEChunks,
   buildOpenAIUrl,
 } from "./providers/openai.js";
 import {
-  parseMistralRequest,
   parseMistralResponse,
   parseMistralSSEChunks,
   buildMistralUrl,
 } from "./providers/mistral.js";
 import {
-  parseCohereRequest,
   parseCohereResponse,
   parseCohereSSEChunks,
   buildCohereUrl,
@@ -64,13 +61,10 @@ function buildTargetUrl(provider: Provider, path: string): string {
 }
 
 /**
- * Parse the request body based on provider format.
+ * Parse the request body. All providers use the same request format.
  */
-function parseRequest(provider: Provider, body: unknown) {
-  if (provider === "anthropic") return parseAnthropicRequest(body);
-  if (provider === "mistral") return parseMistralRequest(body);
-  if (provider === "cohere") return parseCohereRequest(body);
-  return parseOpenAIRequest(body);
+function parseRequest(_provider: Provider, body: unknown) {
+  return parseProviderRequest(body);
 }
 
 /**

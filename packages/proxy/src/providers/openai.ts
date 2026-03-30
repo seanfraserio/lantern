@@ -8,23 +8,13 @@
  */
 
 import type { ProviderCapture } from "../types.js";
+import { parseProviderRequest, createUrlBuilder } from "./shared.js";
 
 export const OPENAI_BASE_URL = "https://api.openai.com";
 
 export type OpenAICapture = ProviderCapture;
 
-export function parseOpenAIRequest(body: unknown): {
-  model: string;
-  messages: Array<{ role: string; content: string }>;
-  stream?: boolean;
-} {
-  const b = body as Record<string, unknown>;
-  return {
-    model: (b.model as string) ?? "unknown",
-    messages: (b.messages as Array<{ role: string; content: string }>) ?? [],
-    stream: b.stream as boolean | undefined,
-  };
-}
+export const parseOpenAIRequest = parseProviderRequest;
 
 export function parseOpenAIResponse(body: unknown): Partial<OpenAICapture> {
   const b = body as Record<string, unknown>;
@@ -92,11 +82,8 @@ export function parseOpenAISSEChunks(chunks: string[]): Partial<OpenAICapture> {
  * Strips the /openai prefix from the path.
  * Validates that the resulting path is safe (no traversal, must start with /v1/).
  */
-export function buildOpenAIUrl(path: string): string {
-  // /openai/v1/chat/completions -> /v1/chat/completions
-  const stripped = path.replace(/^\/openai/, "");
-  if (stripped.includes("..") || !stripped.startsWith("/v1/")) {
-    throw new Error(`Invalid API path: ${stripped}`);
-  }
-  return `${OPENAI_BASE_URL}${stripped}`;
-}
+export const buildOpenAIUrl = createUrlBuilder({
+  pathPrefix: "/openai",
+  baseUrl: OPENAI_BASE_URL,
+  allowedPrefixes: ["/v1/"],
+});

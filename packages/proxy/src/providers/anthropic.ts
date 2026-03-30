@@ -8,23 +8,13 @@
  */
 
 import type { ProviderCapture } from "../types.js";
+import { parseProviderRequest, createUrlBuilder } from "./shared.js";
 
 export const ANTHROPIC_BASE_URL = "https://api.anthropic.com";
 
 export type AnthropicCapture = ProviderCapture;
 
-export function parseAnthropicRequest(body: unknown): {
-  model: string;
-  messages: Array<{ role: string; content: string }>;
-  stream?: boolean;
-} {
-  const b = body as Record<string, unknown>;
-  return {
-    model: (b.model as string) ?? "unknown",
-    messages: (b.messages as Array<{ role: string; content: string }>) ?? [],
-    stream: b.stream as boolean | undefined,
-  };
-}
+export const parseAnthropicRequest = parseProviderRequest;
 
 export function parseAnthropicResponse(body: unknown): Partial<AnthropicCapture> {
   const b = body as Record<string, unknown>;
@@ -89,11 +79,8 @@ export function parseAnthropicSSEChunks(chunks: string[]): Partial<AnthropicCapt
  * Strips the /anthropic prefix from the path.
  * Validates that the resulting path is safe (no traversal, must start with /v1/).
  */
-export function buildAnthropicUrl(path: string): string {
-  // /anthropic/v1/messages -> /v1/messages
-  const stripped = path.replace(/^\/anthropic/, "");
-  if (stripped.includes("..") || !stripped.startsWith("/v1/")) {
-    throw new Error(`Invalid API path: ${stripped}`);
-  }
-  return `${ANTHROPIC_BASE_URL}${stripped}`;
-}
+export const buildAnthropicUrl = createUrlBuilder({
+  pathPrefix: "/anthropic",
+  baseUrl: ANTHROPIC_BASE_URL,
+  allowedPrefixes: ["/v1/"],
+});

@@ -9,6 +9,7 @@
 import Fastify from "fastify";
 import { timingSafeEqual } from "node:crypto";
 import { registerProxyRoutes } from "./proxy.js";
+import { registerSecurityHeaders } from "./lib/security-headers.js";
 
 export interface ProxyConfig {
   /** Port to listen on (default: 4300, or PORT env var) */
@@ -32,12 +33,9 @@ export async function createProxyServer(config?: ProxyConfig) {
   });
 
   // Security headers
-  app.addHook("onSend", async (_request, reply) => {
-    reply.header("X-Content-Type-Options", "nosniff");
-    reply.header("Cache-Control", "no-store");
-    reply.header("X-Frame-Options", "DENY");
-    reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
-    reply.header("Content-Security-Policy", "default-src 'none'");
+  await registerSecurityHeaders(app, {
+    hsts: false,
+    csp: "default-src 'none'",
   });
 
   // Content-type validation: only accept application/json for non-GET requests
