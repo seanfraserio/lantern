@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { ITraceStore, Scorer } from "@openlantern-ai/sdk";
 import type { Trace } from "@openlantern-ai/sdk";
 import { createEvalWorker } from "../worker.js";
