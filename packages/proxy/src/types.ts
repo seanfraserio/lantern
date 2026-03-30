@@ -1,3 +1,5 @@
+export type ProviderName = "anthropic" | "openai" | "google" | "ollama" | "bedrock" | "mistral" | "cohere";
+
 /**
  * Shared type for captured LLM request/response data across all providers.
  *

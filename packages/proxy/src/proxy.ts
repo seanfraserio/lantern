@@ -31,8 +31,13 @@ import {
   buildCohereUrl,
 } from "./providers/cohere.js";
 import { buildTrace } from "./trace-builder.js";
+import type { ProviderName } from "./types.js";
 
-type Provider = "anthropic" | "openai" | "mistral" | "cohere";
+/**
+ * Subset of ProviderName that the Lantern proxy currently handles at runtime.
+ * The full ProviderName union is broader for data compatibility across the trilogy.
+ */
+type SupportedProvider = Extract<ProviderName, "anthropic" | "openai" | "mistral" | "cohere">;
 
 interface ProxyContext {
   ingestEndpoint: string;
@@ -41,7 +46,7 @@ interface ProxyContext {
 /**
  * Determine the provider from the URL path or X-Lantern-Provider header.
  */
-function resolveProvider(path: string): Provider | null {
+function resolveProvider(path: string): SupportedProvider | null {
   if (path.startsWith("/anthropic/")) return "anthropic";
   if (path.startsWith("/openai/")) return "openai";
   if (path.startsWith("/mistral/")) return "mistral";
@@ -53,7 +58,7 @@ function resolveProvider(path: string): Provider | null {
 /**
  * Build the target URL for the upstream LLM API.
  */
-function buildTargetUrl(provider: Provider, path: string): string {
+function buildTargetUrl(provider: SupportedProvider, path: string): string {
   if (provider === "anthropic") return buildAnthropicUrl(path);
   if (provider === "mistral") return buildMistralUrl(path);
   if (provider === "cohere") return buildCohereUrl(path);
@@ -63,14 +68,14 @@ function buildTargetUrl(provider: Provider, path: string): string {
 /**
  * Parse the request body. All providers use the same request format.
  */
-function parseRequest(_provider: Provider, body: unknown) {
+function parseRequest(_provider: SupportedProvider, body: unknown) {
   return parseProviderRequest(body);
 }
 
 /**
  * Parse a non-streaming response body based on provider format.
  */
-function parseResponse(provider: Provider, body: unknown) {
+function parseResponse(provider: SupportedProvider, body: unknown) {
   if (provider === "anthropic") return parseAnthropicResponse(body);
   if (provider === "mistral") return parseMistralResponse(body);
   if (provider === "cohere") return parseCohereResponse(body);
@@ -80,7 +85,7 @@ function parseResponse(provider: Provider, body: unknown) {
 /**
  * Parse accumulated SSE chunks based on provider format.
  */
-function parseSSEChunks(provider: Provider, chunks: string[]) {
+function parseSSEChunks(provider: SupportedProvider, chunks: string[]) {
   if (provider === "anthropic") return parseAnthropicSSEChunks(chunks);
   if (provider === "mistral") return parseMistralSSEChunks(chunks);
   if (provider === "cohere") return parseCohereSSEChunks(chunks);
@@ -194,7 +199,7 @@ function extractSSEData(text: string): string[] {
  * Handle a non-streaming proxy request.
  */
 async function handleNonStreaming(
-  provider: Provider,
+  provider: SupportedProvider,
   targetUrl: string,
   upstreamHeaders: Record<string, string>,
   requestBody: unknown,
@@ -273,7 +278,7 @@ async function handleNonStreaming(
  * in the background. After the stream ends, builds and sends the trace.
  */
 async function handleStreaming(
-  provider: Provider,
+  provider: SupportedProvider,
   targetUrl: string,
   upstreamHeaders: Record<string, string>,
   requestBody: unknown,
