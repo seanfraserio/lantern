@@ -1,0 +1,12 @@
+{
+  "name": "@freelancer/shared-utils",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./security-headers": "./src/security-headers.ts"
+  },
+  "peerDependencies": {
+    "fastify": "^5.0.0"
+  }
+}
