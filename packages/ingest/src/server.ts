@@ -6,6 +6,7 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerDashboardRoutes } from "./routes/dashboard.js";
 import { registerPromptRoutes } from "./routes/prompts.js";
 import { registerObservability, recordMetric } from "./lib/observability.js";
+import { registerSecurityHeaders } from "./lib/security-headers.js";
 import { loadConfig } from "./config.js";
 import type { LanternConfig } from "./config.js";
 import type { ITraceStore } from "@openlantern-ai/sdk";
@@ -106,14 +107,11 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   registerObservability(app, "lantern-ingest");
 
   // Security headers + request ID propagation
-  app.addHook("onSend", async (request, reply) => {
-    reply.header("X-Request-Id", request.id);
-    reply.header("X-Content-Type-Options", "nosniff");
-    reply.header("X-Frame-Options", "DENY");
-    reply.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
-    reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
-    reply.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-    reply.header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'");
+  await registerSecurityHeaders(app, {
+    csp: "default-src 'none'",
+    permissionsPolicy: "camera=(), microphone=(), geolocation=()",
+    hsts: true,
+    requestId: true,
   });
 
   // ── Optional: Cloud Tasks evaluation trigger ──
