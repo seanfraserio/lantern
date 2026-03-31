@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@freelancer/shared-utils": "file:../../../shared-packages/shared-utils",
+    "@freelancer/shared-utils": "file:../../shared-packages/shared-utils",
     "@openlantern-ai/sdk": "workspace:*",
     "fastify": "^5.8.4"
   },
