@@ -56,7 +56,7 @@ export async function registerSecurityHeaders(
         "max-age=63072000; includeSubDomains",
       );
     }
-    if (csp) {
+    if (csp && !reply.getHeader("Content-Security-Policy")) {
       reply.header("Content-Security-Policy", csp);
     }
     if (permissionsPolicy) {

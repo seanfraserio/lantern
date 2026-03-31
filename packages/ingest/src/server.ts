@@ -114,6 +114,30 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     requestId: true,
   });
 
+  // ── CSRF: Origin validation for state-changing methods ──
+  // Defense-in-depth: reject requests where Origin IS present but doesn't match
+  // allowed origins. Requests without an Origin header (server-to-server SDK calls)
+  // are allowed through — they rely on Bearer token auth instead.
+  const allowedOriginsEnv = process.env.ALLOWED_ORIGINS ?? process.env.APP_URL ?? "";
+  const allowedOrigins = new Set(
+    allowedOriginsEnv.split(",").map((o) => o.trim()).filter(Boolean)
+  );
+  if (allowedOrigins.size > 0) {
+    app.addHook("onRequest", async (request, reply) => {
+      if (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS") {
+        return;
+      }
+      const origin = request.headers.origin;
+      if (!origin) {
+        // No Origin header — server-to-server call (SDK, curl, etc.). Allow through.
+        return;
+      }
+      if (!allowedOrigins.has(origin)) {
+        return reply.status(403).send({ error: "Origin not allowed" });
+      }
+    });
+  }
+
   // ── Optional: Cloud Tasks evaluation trigger ──
   // Supports both YAML config and environment variables
   let evalTrigger: EvalTrigger | undefined;
@@ -280,10 +304,20 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   } else {
     // ── Single-tenant mode (OSS / self-hosted) ──
     if (!apiKey) {
-      console.warn(
-        "[lantern] WARNING: No API key configured. The ingest server is running without authentication. " +
-        "Set LANTERN_API_KEY or configure auth.api_keys in lantern.yaml to secure the API."
-      );
+      const isLocalhost = host === "127.0.0.1" || host === "::1" || host === "localhost";
+      if (!isLocalhost) {
+        console.error(
+          "[lantern] *** SECURITY ERROR ***: No API key configured and server is binding to " + host + ". " +
+          "The ingest API is accessible without authentication on a non-localhost interface. " +
+          "This is dangerous in production. Set LANTERN_API_KEY or configure auth.api_keys in lantern.yaml, " +
+          "or bind to localhost (host: 127.0.0.1) to restrict access."
+        );
+      } else {
+        console.warn(
+          "[lantern] WARNING: No API key configured. The ingest server is running without authentication. " +
+          "Set LANTERN_API_KEY or configure auth.api_keys in lantern.yaml to secure the API."
+        );
+      }
     }
     if (apiKey) {
       const { timingSafeEqual } = await import("node:crypto");

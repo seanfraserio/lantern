@@ -7,6 +7,28 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const MAX_TRACES_PER_REQUEST = 100;
 const VALID_STATUSES = new Set(["success", "error", "running"]);
 
+// Simple in-memory rate limiter for single-tenant ingest (1000 req/min per IP)
+const ingestRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const INGEST_RATE_LIMIT_MAX = 1000;
+const INGEST_RATE_LIMIT_WINDOW_MS = 60_000;
+
+function checkIngestRateLimit(ip: string): boolean {
+  const now = Date.now();
+  // Periodically clean up expired entries
+  if (ingestRateLimitMap.size > 1000) {
+    for (const [key, entry] of ingestRateLimitMap) {
+      if (now > entry.resetAt) ingestRateLimitMap.delete(key);
+    }
+  }
+  const entry = ingestRateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    ingestRateLimitMap.set(ip, { count: 1, resetAt: now + INGEST_RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= INGEST_RATE_LIMIT_MAX;
+}
+
 interface TraceInput {
   id?: unknown;
   sessionId?: unknown;
@@ -40,6 +62,14 @@ function getStore(request: FastifyRequest, defaultStore: ITraceStore): ITraceSto
 export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceStore, _multiTenant?: boolean, evalTrigger?: EvalTrigger): void {
   // POST /v1/traces — ingest traces
   app.post<{ Body: TraceIngestRequest }>("/v1/traces", async (request, reply) => {
+    // In single-tenant mode, apply per-IP rate limiting (multi-tenant uses plan-based limits)
+    if (!_multiTenant && !checkIngestRateLimit(request.ip)) {
+      return reply.status(429).send({
+        accepted: 0,
+        errors: ["Rate limit exceeded. Max 1000 requests per minute."],
+      } satisfies TraceIngestResponse);
+    }
+
     const { traces } = request.body;
 
     if (!traces || !Array.isArray(traces) || traces.length === 0) {

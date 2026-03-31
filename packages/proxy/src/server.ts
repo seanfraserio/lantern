@@ -34,7 +34,7 @@ export async function createProxyServer(config?: ProxyConfig) {
 
   // Security headers
   await registerSecurityHeaders(app, {
-    hsts: false,
+    hsts: process.env.NODE_ENV === "production",
     csp: "default-src 'none'",
   });
 

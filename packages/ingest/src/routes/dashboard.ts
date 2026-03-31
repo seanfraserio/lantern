@@ -8,6 +8,12 @@ export function registerDashboardRoutes(app: FastifyInstance, apiKey?: string): 
     const injectKey = apiKey && isLocal;
     const safeKey = injectKey ? JSON.stringify(apiKey).replace(/</g, "\\u003c").replace(/>/g, "\\u003e") : null;
     const html = DASHBOARD_HTML.replace('/*__API_KEY_INJECT__*/', safeKey ? `window.__LANTERN_API_KEY__ = ${safeKey};` : '');
+    // Dashboard has inline scripts/styles — use a permissive CSP for this page only.
+    // API routes keep the strict `default-src 'none'` set globally.
+    reply.header(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:;"
+    );
     return reply.type("text/html").send(html);
   });
 }

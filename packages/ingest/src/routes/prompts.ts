@@ -1,8 +1,30 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { PromptStore } from "../store/prompt-store.js";
 
 const VALID_PROMPT_NAME = /^[a-zA-Z0-9_-]{1,128}$/;
 const MAX_CONTENT_LENGTH = 100_000;
+
+/**
+ * In multi-tenant mode, prefix prompt names with the tenant slug to isolate
+ * each tenant's prompts. The separator `/` can never appear in client-supplied
+ * names (blocked by VALID_PROMPT_NAME), preventing cross-tenant access.
+ */
+function scopedName(request: FastifyRequest, name: string): string {
+  const tenantSlug = (request as unknown as Record<string, unknown>).tenantSlug as string | undefined;
+  return tenantSlug ? `${tenantSlug}/${name}` : name;
+}
+
+/**
+ * Strip the tenant prefix from a prompt name for API responses,
+ * so clients see the name they originally provided.
+ */
+function unscopedName(name: string, request: FastifyRequest): string {
+  const tenantSlug = (request as unknown as Record<string, unknown>).tenantSlug as string | undefined;
+  if (tenantSlug && name.startsWith(`${tenantSlug}/`)) {
+    return name.slice(tenantSlug.length + 1);
+  }
+  return name;
+}
 
 export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): void {
   // POST /v1/prompts — create a new prompt
@@ -21,11 +43,11 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
     }
 
     try {
-      const prompt = await store.createPrompt(name.trim(), description);
-      return reply.status(201).send(prompt);
+      const prompt = await store.createPrompt(scopedName(request, name.trim()), description);
+      return reply.status(201).send({ ...prompt, name: unscopedName(prompt.name, request) });
     } catch (err: unknown) {
       if (err instanceof Error && (err as Error & { code?: string }).code === "DUPLICATE") {
-        return reply.status(409).send({ error: err.message });
+        return reply.status(409).send({ error: "A prompt with this name already exists" });
       }
       request.log.error(err);
       return reply.status(500).send({ error: "Internal server error" });
@@ -36,7 +58,14 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
   app.get("/v1/prompts", async (request, reply) => {
     try {
       const prompts = await store.listPrompts();
-      return reply.status(200).send({ prompts });
+      const tenantSlug = (request as unknown as Record<string, unknown>).tenantSlug as string | undefined;
+      // In multi-tenant mode, filter to only this tenant's prompts and strip prefix
+      const filtered = tenantSlug
+        ? prompts
+            .filter((p) => p.name.startsWith(`${tenantSlug}/`))
+            .map((p) => ({ ...p, name: unscopedName(p.name, request) }))
+        : prompts;
+      return reply.status(200).send({ prompts: filtered });
     } catch (err) {
       request.log.error(err);
       return reply.status(500).send({ error: "Internal server error" });
@@ -49,7 +78,7 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
       return reply.status(400).send({ error: "Invalid prompt name." });
     }
     try {
-      const version = await store.getActiveVersion(request.params.name);
+      const version = await store.getActiveVersion(scopedName(request, request.params.name));
       if (!version) {
         return reply.status(404).send({ error: "No active version found" });
       }
@@ -66,7 +95,7 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
       return reply.status(400).send({ error: "Invalid prompt name." });
     }
     try {
-      const versions = await store.listVersions(request.params.name);
+      const versions = await store.listVersions(scopedName(request, request.params.name));
       return reply.status(200).send({ versions });
     } catch (err) {
       request.log.error(err);
@@ -95,7 +124,7 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
 
     try {
       const version = await store.createVersion(
-        request.params.name,
+        scopedName(request, request.params.name),
         content,
         model,
         activate
@@ -103,7 +132,7 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
       return reply.status(201).send(version);
     } catch (err: unknown) {
       if (err instanceof Error && (err as Error & { code?: string }).code === "NOT_FOUND") {
-        return reply.status(404).send({ error: err.message });
+        return reply.status(404).send({ error: "Prompt not found" });
       }
       request.log.error(err);
       return reply.status(500).send({ error: "Internal server error" });
@@ -123,11 +152,11 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
     }
 
     try {
-      await store.activateVersion(request.params.name, versionNum);
+      await store.activateVersion(scopedName(request, request.params.name), versionNum);
       return reply.status(200).send({ activated: versionNum });
     } catch (err: unknown) {
       if (err instanceof Error && (err as Error & { code?: string }).code === "NOT_FOUND") {
-        return reply.status(404).send({ error: err.message });
+        return reply.status(404).send({ error: "Prompt not found" });
       }
       request.log.error(err);
       return reply.status(500).send({ error: "Internal server error" });
@@ -140,7 +169,7 @@ export function registerPromptRoutes(app: FastifyInstance, store: PromptStore): 
       return reply.status(400).send({ error: "Invalid prompt name." });
     }
     try {
-      await store.deletePrompt(request.params.name);
+      await store.deletePrompt(scopedName(request, request.params.name));
       return reply.status(204).send();
     } catch (err) {
       request.log.error(err);
