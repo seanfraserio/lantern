@@ -52,8 +52,7 @@ export async function createEvalWorker(config: EvalWorkerConfig): Promise<Fastif
       }
     }
 
-    trace.scores = scores;
-    await store.insert([trace]);
+    await store.updateScores(trace.id, scores);
 
     return reply.send({ traceId, scores });
   });

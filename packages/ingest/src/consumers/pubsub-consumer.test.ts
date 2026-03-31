@@ -9,6 +9,7 @@ function makeMockStore(): ITraceStore {
     queryTraces: vi.fn().mockResolvedValue([]),
     getTraceCount: vi.fn().mockResolvedValue(0),
     getSources: vi.fn().mockResolvedValue([]),
+    updateScores: vi.fn().mockResolvedValue(undefined),
   };
 }
 

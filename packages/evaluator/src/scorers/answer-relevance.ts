@@ -1,14 +1,17 @@
 import type { Scorer, EvalScore, Trace } from "@openlantern-ai/sdk";
 import type { JudgeLLM } from "../judge.js";
 import { parseJudgeResponse } from "../judge.js";
+import { escapeTemplateMarkers } from "./escape.js";
 
 export const ANSWER_RELEVANCE_PROMPT = `You are an evaluation judge assessing whether an AI assistant's response directly addresses the user's question or request.
 
-USER QUESTION:
+<user_input>
 {{input}}
+</user_input>
 
-ASSISTANT RESPONSE:
+<agent_output>
 {{output}}
+</agent_output>
 
 Analyze whether the response is relevant to what the user asked. Respond ONLY with JSON:
 {"score": <0.0-1.0>, "label": "<highly_relevant|relevant|partially_relevant|not_relevant>", "reasoning": "<brief explanation>"}
@@ -56,8 +59,8 @@ export class AnswerRelevanceScorer implements Scorer {
     }
 
     const prompt = this.promptTemplate
-      .replace("{{input}}", userMessages.join("\n"))
-      .replace("{{output}}", outputs.join("\n"));
+      .replace("{{input}}", escapeTemplateMarkers(userMessages.join("\n")))
+      .replace("{{output}}", escapeTemplateMarkers(outputs.join("\n")));
 
     try {
       const raw = await this.judge.generate(prompt);

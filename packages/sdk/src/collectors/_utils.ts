@@ -93,8 +93,13 @@ export function getPricing(model: string, provider?: string): PricePer1K {
   if (MODEL_PRICING[model]) return MODEL_PRICING[model];
 
   // Try substring match (e.g., "gpt-4o-2024-08-06" matches "gpt-4o")
-  for (const [key, price] of Object.entries(MODEL_PRICING)) {
-    if (!key.includes(":") && model.startsWith(key)) return price;
+  // Sort by key length descending so longer (more specific) keys match first
+  // (e.g., "gpt-4o-mini" matches before "gpt-4o")
+  const sortedKeys = Object.keys(MODEL_PRICING)
+    .filter(k => !k.includes(":"))
+    .sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
+    if (model.startsWith(key)) return MODEL_PRICING[key];
   }
 
   return DEFAULT_PRICING;

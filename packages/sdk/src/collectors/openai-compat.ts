@@ -37,6 +37,8 @@ interface OpenAICompatClient {
   };
 }
 
+const WRAPPED = Symbol.for("lantern.wrapped");
+
 /**
  * Wrap any OpenAI-compatible client to trace chat.completions.create() calls.
  * Works with Groq, Together AI, Fireworks, DeepSeek, Perplexity, Ollama,
@@ -52,6 +54,8 @@ export function wrapOpenAICompatClient<T extends OpenAICompatClient>(
   tracer: LanternTracer,
   opts: { provider: string; traceId?: string; agentName?: string },
 ): T {
+  if ((client as any)[WRAPPED]) return client;
+
   const originalCreate = client.chat.completions.create.bind(client.chat.completions);
 
   const wrappedCreate = async (params: OpenAICompatParams): Promise<OpenAICompatResponse> => {
@@ -126,5 +130,6 @@ export function wrapOpenAICompatClient<T extends OpenAICompatClient>(
   };
 
   Object.assign(client.chat.completions, { create: wrappedCreate });
+  (client as any)[WRAPPED] = true;
   return client;
 }

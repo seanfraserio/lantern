@@ -109,12 +109,15 @@ export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceSt
       recordMetric("traces_ingested_tokens", totalTokens, { tenant: tenantSlug ?? "single" });
     }
 
-    // Write to DB asynchronously — respond immediately with 202
+    // Await DB write — only confirm acceptance after persistence succeeds
     const store = getStore(request, defaultStore);
-    store.insert(traces).catch((error) => {
-      request.log.error(error, "Background trace insert failed");
+    try {
+      await store.insert(traces);
+    } catch (error) {
+      request.log.error(error, "Trace insert failed");
       recordMetric("traces_insert_errors", 1, { tenant: tenantSlug ?? "single" });
-    });
+      return reply.status(500).send({ error: "Insert failed" });
+    }
 
     // Enqueue evaluation jobs for successful traces
     if (evalTrigger) {
@@ -128,7 +131,7 @@ export function registerTraceRoutes(app: FastifyInstance, defaultStore: ITraceSt
       }
     }
 
-    return reply.status(202).send({
+    return reply.status(201).send({
       accepted: traces.length,
     } satisfies TraceIngestResponse);
   });

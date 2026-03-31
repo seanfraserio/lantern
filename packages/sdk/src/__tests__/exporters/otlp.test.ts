@@ -526,7 +526,7 @@ describe("OtlpExporter", () => {
       );
     });
 
-    it("throws on 500 server error", async () => {
+    it("throws on 500 server error after retries", async () => {
       fetchMock.mockResolvedValue({
         ok: false,
         status: 500,
@@ -534,13 +534,21 @@ describe("OtlpExporter", () => {
         text: vi.fn().mockResolvedValue(""),
       });
 
+      // Replace setTimeout to skip delays during retries
+      const origSetTimeout = globalThis.setTimeout;
+      vi.stubGlobal("setTimeout", (fn: () => void) => origSetTimeout(fn, 0));
+
       const exporter = new OtlpExporter({ endpoint: "http://localhost:4318" });
       await expect(exporter.export([makeTrace({ spans: [makeSpan()] })])).rejects.toThrow(
         "OTLP export failed: 500 Internal Server Error"
       );
+      // Initial attempt + 3 retries = 4 total calls
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+
+      vi.stubGlobal("setTimeout", origSetTimeout);
     });
 
-    it("handles response.text() rejection gracefully", async () => {
+    it("handles response.text() rejection gracefully after retries", async () => {
       fetchMock.mockResolvedValue({
         ok: false,
         status: 502,
@@ -548,10 +556,16 @@ describe("OtlpExporter", () => {
         text: vi.fn().mockRejectedValue(new Error("stream error")),
       });
 
+      // Replace setTimeout to skip delays during retries
+      const origSetTimeout = globalThis.setTimeout;
+      vi.stubGlobal("setTimeout", (fn: () => void) => origSetTimeout(fn, 0));
+
       const exporter = new OtlpExporter({ endpoint: "http://localhost:4318" });
       await expect(exporter.export([makeTrace({ spans: [makeSpan()] })])).rejects.toThrow(
         "OTLP export failed: 502 Bad Gateway - "
       );
+
+      vi.stubGlobal("setTimeout", origSetTimeout);
     });
 
     it("propagates fetch network errors", async () => {

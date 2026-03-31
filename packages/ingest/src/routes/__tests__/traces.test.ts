@@ -32,6 +32,7 @@ function makeMockStore(): ITraceStore & { traces: Map<string, Trace> } {
     queryTraces: vi.fn(async (_filter: TraceQueryFilter) => Array.from(traces.values())),
     getTraceCount: vi.fn(async () => traces.size),
     getSources: vi.fn(async (): Promise<SourceSummary[]> => []),
+    updateScores: vi.fn(async () => {}),
   };
 }
 
@@ -56,7 +57,7 @@ describe("POST /v1/traces — validation", () => {
       url: "/v1/traces",
       payload: { traces: [makeValidTrace()] },
     });
-    expect(res.statusCode).toBe(202);
+    expect(res.statusCode).toBe(201);
     const body = JSON.parse(res.body);
     expect(body.accepted).toBe(1);
     expect(store.insert).toHaveBeenCalledOnce();
@@ -69,7 +70,7 @@ describe("POST /v1/traces — validation", () => {
       url: "/v1/traces",
       payload: { traces },
     });
-    expect(res.statusCode).toBe(202);
+    expect(res.statusCode).toBe(201);
     expect(JSON.parse(res.body).accepted).toBe(3);
   });
 
@@ -140,7 +141,7 @@ describe("POST /v1/traces — validation", () => {
         url: "/v1/traces",
         payload: { traces: [makeValidTrace({ status })] },
       });
-      expect(res.statusCode).toBe(202);
+      expect(res.statusCode).toBe(201);
     }
   });
 
@@ -169,7 +170,7 @@ describe("POST /v1/traces — validation", () => {
       url: "/v1/traces",
       payload: { traces: [makeValidTrace({ agentName: "a".repeat(255) })] },
     });
-    expect(res.statusCode).toBe(202);
+    expect(res.statusCode).toBe(201);
   });
 
   it("rejects trace with non-numeric startTime", async () => {
@@ -191,16 +192,15 @@ describe("POST /v1/traces — validation", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it("returns 202 even when store.insert fails (async write)", async () => {
+  it("returns 500 when store.insert fails", async () => {
     (store.insert as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("DB error"));
     const res = await app.inject({
       method: "POST",
       url: "/v1/traces",
       payload: { traces: [makeValidTrace()] },
     });
-    // Async writes always return 202 — errors are logged in background
-    expect(res.statusCode).toBe(202);
-    expect(JSON.parse(res.body).accepted).toBe(1);
+    expect(res.statusCode).toBe(500);
+    expect(JSON.parse(res.body).error).toBe("Insert failed");
   });
 });
 

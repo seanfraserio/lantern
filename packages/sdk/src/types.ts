@@ -170,6 +170,7 @@ export interface ITraceStore {
   queryTraces(filter: TraceQueryFilter): Promise<Trace[]>;
   getTraceCount(): Promise<number>;
   getSources(): Promise<SourceSummary[]>;
+  updateScores(traceId: string, scores: EvalScore[]): Promise<void>;
 }
 
 export interface TraceQueryFilter {

@@ -32,6 +32,8 @@ export interface LangChainCallbackHandler {
  * const model = new ChatOpenAI({ callbacks: [handler] });
  * ```
  */
+const MAX_SPAN_HISTORY = 10_000;
+
 export function createLanternCallbackHandler(
   tracer: LanternTracer,
   opts?: { traceId?: string; agentName?: string }
@@ -84,6 +86,10 @@ export function createLanternCallbackHandler(
 
     activeSpans.set(runId, span.id);
     spanHistory.set(runId, span.id);
+    if (spanHistory.size > MAX_SPAN_HISTORY) {
+      const firstKey = spanHistory.keys().next().value;
+      if (firstKey !== undefined) spanHistory.delete(firstKey);
+    }
   }
 
   function endSpan(

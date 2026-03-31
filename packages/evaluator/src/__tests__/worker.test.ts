@@ -11,6 +11,7 @@ function makeMockStore(trace: Trace | null): ITraceStore {
     queryTraces: vi.fn().mockResolvedValue([]),
     getTraceCount: vi.fn().mockResolvedValue(0),
     getSources: vi.fn().mockResolvedValue([]),
+    updateScores: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -69,7 +70,7 @@ describe("createEvalWorker", () => {
       expect(response.json()).toEqual({ error: "Trace not found" });
     });
 
-    it("updates trace scores in store (verifies store.insert called with scores)", async () => {
+    it("updates trace scores in store (verifies store.updateScores called)", async () => {
       const trace = makeTrace({ id: "t1", agentName: "test-agent" });
       const store = makeMockStore(trace);
       const scorer = makeMockScorer("quality", 0.75);
@@ -81,12 +82,12 @@ describe("createEvalWorker", () => {
         payload: { traceId: "t1", agentName: "test-agent" },
       });
 
-      expect(store.insert).toHaveBeenCalledTimes(1);
-      const insertedTraces = (store.insert as ReturnType<typeof vi.fn>).mock.calls[0][0] as Trace[];
-      expect(insertedTraces).toHaveLength(1);
-      expect(insertedTraces[0].scores).toHaveLength(1);
-      expect(insertedTraces[0].scores![0].scorer).toBe("quality");
-      expect(insertedTraces[0].scores![0].score).toBe(0.75);
+      expect(store.updateScores).toHaveBeenCalledTimes(1);
+      const [traceId, scores] = (store.updateScores as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(traceId).toBe("t1");
+      expect(scores).toHaveLength(1);
+      expect(scores[0].scorer).toBe("quality");
+      expect(scores[0].score).toBe(0.75);
     });
 
     it("handles scorer failure gracefully — adds error score and continues", async () => {

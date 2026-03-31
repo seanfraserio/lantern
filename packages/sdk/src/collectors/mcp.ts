@@ -19,6 +19,8 @@ interface McpClient {
   }): Promise<McpToolResult>;
 }
 
+const WRAPPED = Symbol.for("lantern.wrapped");
+
 /**
  * Wrap an MCP client to automatically trace all callTool() invocations.
  * Creates tool_call spans with the tool name, input arguments, and result content.
@@ -37,6 +39,8 @@ export function wrapMcpClient<T extends McpClient>(
   tracer: LanternTracer,
   opts?: { traceId?: string; agentName?: string }
 ): T {
+  if ((client as any)[WRAPPED]) return client;
+
   const originalCallTool = client.callTool.bind(client);
 
   const wrappedCallTool = async (params: {
@@ -97,6 +101,7 @@ export function wrapMcpClient<T extends McpClient>(
 
   // Replace callTool with the wrapped version
   Object.assign(client, { callTool: wrappedCallTool });
+  (client as any)[WRAPPED] = true;
 
   return client;
 }

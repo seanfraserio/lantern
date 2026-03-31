@@ -139,10 +139,19 @@ export class OtlpExporter implements ITraceExporter {
   readonly exporterType = "otlp";
   private endpoint: string;
   private headers: Record<string, string>;
+  private maxRetries: number;
+  private retryBaseDelayMs: number;
 
   constructor(config: OtlpExporterConfig) {
     this.endpoint = config.endpoint.replace(/\/$/, "");
     this.headers = config.headers ?? {};
+    this.maxRetries = 3;
+    this.retryBaseDelayMs = 1000;
+  }
+
+  private async backoff(attempt: number): Promise<void> {
+    const delay = this.retryBaseDelayMs * Math.pow(2, attempt);
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   async export(traces: Trace[]): Promise<void> {
@@ -151,20 +160,39 @@ export class OtlpExporter implements ITraceExporter {
     const url = `${this.endpoint}/v1/traces`;
     const body = JSON.stringify(buildExportRequest(traces));
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...this.headers,
-      },
-      body,
-    });
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...this.headers,
+          },
+          body,
+        });
 
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      throw new Error(
-        `OTLP export failed: ${response.status} ${response.statusText} - ${errorBody}`
-      );
+        if (response.ok) {
+          return;
+        }
+
+        // Retry on 5xx
+        if (response.status >= 500 && attempt < this.maxRetries) {
+          await this.backoff(attempt);
+          continue;
+        }
+
+        const errorBody = await response.text().catch(() => "");
+        throw new Error(
+          `OTLP export failed: ${response.status} ${response.statusText} - ${errorBody}`
+        );
+      } catch (error) {
+        if (attempt < this.maxRetries && error instanceof TypeError) {
+          // Network error — retry
+          await this.backoff(attempt);
+          continue;
+        }
+        throw error;
+      }
     }
   }
 

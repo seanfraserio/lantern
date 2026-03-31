@@ -1,14 +1,17 @@
 import type { Scorer, EvalScore, Trace } from "@openlantern-ai/sdk";
 import type { JudgeLLM } from "../judge.js";
 import { parseJudgeResponse } from "../judge.js";
+import { escapeTemplateMarkers } from "./escape.js";
 
 export const HALLUCINATION_PROMPT = `You are an evaluation judge assessing whether an AI assistant's response contains hallucinations — claims or facts not supported by the provided input context.
 
-INPUT CONTEXT:
+<user_input>
 {{input}}
+</user_input>
 
-ASSISTANT OUTPUT:
+<agent_output>
 {{output}}
+</agent_output>
 
 Analyze the output and determine if it contains any claims not supported by the input context. Respond ONLY with JSON:
 {"score": <0.0-1.0>, "label": "<no_hallucination|minor_hallucination|major_hallucination>", "reasoning": "<brief explanation>"}
@@ -55,8 +58,8 @@ export class HallucinationScorer implements Scorer {
     }
 
     const prompt = this.promptTemplate
-      .replace("{{input}}", inputs.join("\n"))
-      .replace("{{output}}", outputs.join("\n"));
+      .replace("{{input}}", escapeTemplateMarkers(inputs.join("\n")))
+      .replace("{{output}}", escapeTemplateMarkers(outputs.join("\n")));
 
     try {
       const raw = await this.judge.generate(prompt);

@@ -55,6 +55,8 @@ interface OpenAIClient {
   };
 }
 
+const WRAPPED = Symbol.for("lantern.wrapped");
+
 /**
  * Wrap an OpenAI client to automatically trace all chat.completions.create() calls.
  * Creates llm_call spans with full input/output/token data.
@@ -73,6 +75,8 @@ export function wrapOpenAIClient<T extends OpenAIClient>(
   tracer: LanternTracer,
   opts?: { traceId?: string; agentName?: string }
 ): T {
+  if ((client as any)[WRAPPED]) return client;
+
   const originalCreate = client.chat.completions.create.bind(client.chat.completions);
 
   const wrappedCreate = async (params: OpenAICreateParams): Promise<OpenAIResponse> => {
@@ -160,6 +164,7 @@ export function wrapOpenAIClient<T extends OpenAIClient>(
 
   // Replace the create method with the wrapped version
   Object.assign(client.chat.completions, { create: wrappedCreate });
+  (client as any)[WRAPPED] = true;
 
   return client;
 }

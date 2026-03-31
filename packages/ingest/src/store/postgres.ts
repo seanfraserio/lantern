@@ -1,5 +1,5 @@
 import pg from "pg";
-import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@openlantern-ai/sdk";
+import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary, EvalScore } from "@openlantern-ai/sdk";
 import { instrumentPool } from "../lib/timed-pool.js";
 
 const { Pool } = pg;
@@ -158,6 +158,13 @@ export class PostgresTraceStore implements ITraceStore {
     );
 
     return rows.map((row) => this.rowToTrace(row));
+  }
+
+  async updateScores(traceId: string, scores: EvalScore[]): Promise<void> {
+    await this.pool.query(
+      `UPDATE ${this.table} SET scores = $1 WHERE id = $2`,
+      [JSON.stringify(scores), traceId]
+    );
   }
 
   async getTraceCount(): Promise<number> {

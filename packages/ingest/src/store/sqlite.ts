@@ -1,4 +1,4 @@
-import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@openlantern-ai/sdk";
+import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary, EvalScore } from "@openlantern-ai/sdk";
 import Database from "better-sqlite3";
 import { safeJsonParse } from "./util.js";
 
@@ -128,6 +128,13 @@ export class SqliteTraceStore implements ITraceStore {
       .all({ ...params, limit, offset }) as Record<string, unknown>[];
 
     return rows.map((row) => this.rowToTrace(row));
+  }
+
+  async updateScores(traceId: string, scores: EvalScore[]): Promise<void> {
+    this.db.prepare("UPDATE traces SET scores = ? WHERE id = ?").run(
+      JSON.stringify(scores),
+      traceId
+    );
   }
 
   async getTraceCount(): Promise<number> {

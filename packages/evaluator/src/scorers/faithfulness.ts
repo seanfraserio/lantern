@@ -1,14 +1,17 @@
 import type { Scorer, EvalScore, Trace } from "@openlantern-ai/sdk";
 import type { JudgeLLM } from "../judge.js";
 import { parseJudgeResponse } from "../judge.js";
+import { escapeTemplateMarkers } from "./escape.js";
 
 export const FAITHFULNESS_PROMPT = `You are an evaluation judge assessing whether an AI assistant's response is faithful to the retrieved context. This is critical for RAG (Retrieval-Augmented Generation) systems.
 
-RETRIEVED CONTEXT:
+<retrieved_context>
 {{context}}
+</retrieved_context>
 
-ASSISTANT RESPONSE:
+<agent_output>
 {{output}}
+</agent_output>
 
 Analyze whether every claim in the response is supported by the retrieved context. The response should not introduce information beyond what the context provides. Respond ONLY with JSON:
 {"score": <0.0-1.0>, "label": "<faithful|mostly_faithful|partially_faithful|unfaithful>", "reasoning": "<brief explanation>"}
@@ -62,8 +65,8 @@ export class FaithfulnessScorer implements Scorer {
     }
 
     const prompt = this.promptTemplate
-      .replace("{{context}}", contexts.join("\n---\n"))
-      .replace("{{output}}", outputs.join("\n"));
+      .replace("{{context}}", escapeTemplateMarkers(contexts.join("\n---\n")))
+      .replace("{{output}}", escapeTemplateMarkers(outputs.join("\n")));
 
     try {
       const raw = await this.judge.generate(prompt);

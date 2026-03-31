@@ -39,6 +39,8 @@ interface GoogleGenerativeModel {
   ): Promise<{ response: GoogleGenerateContentResponse }>;
 }
 
+const WRAPPED = Symbol.for("lantern.wrapped");
+
 /**
  * Wrap a Google Generative AI model to automatically trace all generateContent() calls.
  * Creates llm_call spans with full input/output/token data.
@@ -61,6 +63,8 @@ export function wrapGoogleGenerativeModel<T extends GoogleGenerativeModel>(
   tracer: LanternTracer,
   opts?: { traceId?: string; agentName?: string; modelName?: string }
 ): T {
+  if ((model as any)[WRAPPED]) return model;
+
   const originalGenerateContent = model.generateContent.bind(model);
 
   const wrappedGenerateContent = async (
@@ -159,6 +163,7 @@ export function wrapGoogleGenerativeModel<T extends GoogleGenerativeModel>(
 
   // Replace the generateContent method with the wrapped version
   Object.assign(model, { generateContent: wrappedGenerateContent });
+  (model as any)[WRAPPED] = true;
 
   return model;
 }

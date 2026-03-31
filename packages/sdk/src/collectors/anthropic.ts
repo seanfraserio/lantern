@@ -43,6 +43,8 @@ interface AnthropicClient {
   messages: AnthropicMessages;
 }
 
+const WRAPPED = Symbol.for("lantern.wrapped");
+
 /**
  * Wrap an Anthropic client to automatically trace all message.create() calls.
  * Creates llm_call spans with full input/output/token data.
@@ -61,6 +63,8 @@ export function wrapAnthropicClient<T extends AnthropicClient>(
   tracer: LanternTracer,
   opts?: { traceId?: string; agentName?: string }
 ): T {
+  if ((client as any)[WRAPPED]) return client;
+
   const originalCreate = client.messages.create.bind(client.messages);
 
   const wrappedCreate = async (params: AnthropicCreateParams): Promise<AnthropicResponse> => {
@@ -150,6 +154,7 @@ export function wrapAnthropicClient<T extends AnthropicClient>(
 
   // Replace the create method with the wrapped version
   Object.assign(client.messages, { create: wrappedCreate });
+  (client as any)[WRAPPED] = true;
 
   return client;
 }
