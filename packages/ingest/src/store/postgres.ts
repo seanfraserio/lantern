@@ -1,5 +1,6 @@
 import pg from "pg";
 import type { ITraceStore, TraceQueryFilter, Trace, SourceSummary } from "@openlantern-ai/sdk";
+import { instrumentPool } from "../lib/timed-pool.js";
 
 const { Pool } = pg;
 
@@ -24,10 +25,10 @@ export class PostgresTraceStore implements ITraceStore {
         `Must match /^[a-z0-9_]{1,63}$/.`
       );
     }
-    this.pool = new Pool({
+    this.pool = instrumentPool(new Pool({
       connectionString: config.connectionString,
       max: config.poolSize ?? 15,
-    });
+    }));
     this.schema = config.tenantSchema;
   }
 

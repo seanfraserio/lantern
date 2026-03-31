@@ -6,6 +6,7 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerDashboardRoutes } from "./routes/dashboard.js";
 import { registerPromptRoutes } from "./routes/prompts.js";
 import { registerObservability, recordMetric } from "./lib/observability.js";
+import { instrumentPool } from "./lib/timed-pool.js";
 import { registerSecurityHeaders } from "./lib/security-headers.js";
 import { loadConfig } from "./config.js";
 import type { LanternConfig } from "./config.js";
@@ -185,7 +186,7 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     // ── Multi-tenant mode ──
     // Resolve API key → tenant on every /v1/ request
     const pg = await import("pg");
-    const pool = new pg.default.Pool({ connectionString: databaseUrl, max: 15 });
+    const pool = instrumentPool(new pg.default.Pool({ connectionString: databaseUrl, max: 15 }));
     const { TenantResolver } = await import("./middleware/tenant.js");
     const resolver = new TenantResolver(pool);
 

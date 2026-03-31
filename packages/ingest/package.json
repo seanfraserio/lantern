@@ -24,7 +24,7 @@
     "@google-cloud/tasks": "^6.2.1",
     "@openlantern-ai/sdk": "workspace:*",
     "better-sqlite3": "^11.0.0",
-    "fastify": "^5.0.0",
+    "fastify": "^5.8.4",
     "js-yaml": "^4.1.0",
     "pg": "^8.20.0"
   },
