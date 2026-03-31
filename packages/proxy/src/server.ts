@@ -9,7 +9,7 @@
 import Fastify from "fastify";
 import { timingSafeEqual } from "node:crypto";
 import { registerProxyRoutes } from "./proxy.js";
-import { registerSecurityHeaders } from "./lib/security-headers.js";
+import { registerSecurityHeaders } from "@freelancer/shared-utils/security-headers";
 
 export interface ProxyConfig {
   /** Port to listen on (default: 4300, or PORT env var) */

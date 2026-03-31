@@ -314,6 +314,9 @@ importers:
       '@fastify/compress':
         specifier: ^8.0.0
         version: 8.3.1
+      '@freelancer/shared-utils':
+        specifier: file:../../../shared-packages/shared-utils
+        version: file:../shared-packages/shared-utils(fastify@5.8.4)(hono@4.12.8)(zod@3.25.76)
       '@google-cloud/pubsub':
         specifier: ^5.3.0
         version: 5.3.0
@@ -452,6 +455,9 @@ importers:
 
   packages/proxy:
     dependencies:
+      '@freelancer/shared-utils':
+        specifier: file:../../../shared-packages/shared-utils
+        version: file:../shared-packages/shared-utils(fastify@5.8.4)(hono@4.12.8)(zod@3.25.76)
       '@openlantern-ai/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -1484,6 +1490,20 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@freelancer/shared-utils@file:../shared-packages/shared-utils':
+    resolution: {directory: ../shared-packages/shared-utils, type: directory}
+    peerDependencies:
+      fastify: ^5.0.0
+      hono: ^4.5.0
+      zod: ^3.23.8
+    peerDependenciesMeta:
+      fastify:
+        optional: true
+      hono:
+        optional: true
+      zod:
+        optional: true
 
   '@gar/promise-retry@1.0.3':
     resolution: {integrity: sha512-GmzA9ckNokPypTg10pgpeHNQe7ph+iIKKmhKu3Ob9ANkswreCx7R3cKmY781K8QK3AqVL3xVh9A42JvIAbkkSA==}
@@ -8812,6 +8832,12 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
+  '@freelancer/shared-utils@file:../shared-packages/shared-utils(fastify@5.8.4)(hono@4.12.8)(zod@3.25.76)':
+    optionalDependencies:
+      fastify: 5.8.4
+      hono: 4.12.8
+      zod: 3.25.76
+
   '@gar/promise-retry@1.0.3': {}
 
   '@google-cloud/paginator@6.0.0':
@@ -12038,7 +12064,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.10.2(eslint@8.57.1)
       eslint-plugin-react: 7.37.5(eslint@8.57.1)
       eslint-plugin-react-hooks: 7.0.1(eslint@8.57.1)
@@ -12071,7 +12097,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -12086,7 +12112,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.2(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9

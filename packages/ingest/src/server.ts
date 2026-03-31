@@ -7,7 +7,7 @@ import { registerDashboardRoutes } from "./routes/dashboard.js";
 import { registerPromptRoutes } from "./routes/prompts.js";
 import { registerObservability, recordMetric } from "./lib/observability.js";
 import { instrumentPool } from "./lib/timed-pool.js";
-import { registerSecurityHeaders } from "./lib/security-headers.js";
+import { registerSecurityHeaders } from "@freelancer/shared-utils/security-headers";
 import { loadConfig } from "./config.js";
 import type { LanternConfig } from "./config.js";
 import type { ITraceStore } from "@openlantern-ai/sdk";

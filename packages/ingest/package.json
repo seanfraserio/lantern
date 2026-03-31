@@ -19,6 +19,7 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
+    "@freelancer/shared-utils": "file:../../../shared-packages/shared-utils",
     "@fastify/compress": "^8.0.0",
     "@google-cloud/pubsub": "^5.3.0",
     "@google-cloud/tasks": "^6.2.1",
