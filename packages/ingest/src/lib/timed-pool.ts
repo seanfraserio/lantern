@@ -69,7 +69,7 @@ export function instrumentPool(pool: pg.Pool): pg.Pool {
   pool.query = (async (...args: unknown[]) => {
     const start = performance.now();
     try {
-      const result = await (originalQuery as Function)(...args);
+      const result = await (originalQuery as (...a: unknown[]) => Promise<unknown>)(...args);
       return result;
     } finally {
       const durationMs = Math.round(performance.now() - start);
