@@ -5,20 +5,22 @@ Trace Mastra agent LLM calls, tool executions, and workflow steps using a teleme
 ## Installation
 
 ```bash
-npm install @openlantern-ai/sdk @openlantern-ai/mastra mastra
+npm install @openlantern-ai/sdk @openlantern-ai/mastra
 ```
 
-The Mastra integration is a separate package (`@openlantern-ai/mastra`) because it depends on `mastra` as a peer dependency.
+This package provides normalized telemetry callbacks and requires only the Lantern
+SDK as a peer. It does not import or install the Mastra CLI/deployer. Install your
+application's framework separately and translate its telemetry into the event
+shape below. Direct registration with a particular Mastra release is not verified.
 
 ## Setup
 
 ```typescript
-import { LanternTracer } from "@openlantern-ai/sdk";
+import { LanternTracer, ConsoleExporter } from "@openlantern-ai/sdk";
 import { createLanternMastraHook } from "@openlantern-ai/mastra";
 
 const tracer = new LanternTracer({
-  apiKey: process.env.LANTERN_API_KEY,
-  baseUrl: process.env.LANTERN_BASE_URL,
+  exporter: new ConsoleExporter(),
 });
 
 const hook = createLanternMastraHook(tracer, {
@@ -27,25 +29,6 @@ const hook = createLanternMastraHook(tracer, {
 ```
 
 ## Usage
-
-### Register the hook with Mastra
-
-```typescript
-import { Mastra } from "mastra";
-
-const mastra = new Mastra({
-  agents: { myAgent },
-  telemetry: {
-    hooks: [hook],
-  },
-});
-
-const agent = mastra.getAgent("myAgent");
-const result = await agent.generate("Summarize the latest news");
-
-// Call finish() when the agent interaction is complete
-hook.finish();
-```
 
 ### Manual span lifecycle
 
@@ -94,8 +77,8 @@ Mastra emits spans with OpenTelemetry semantic conventions. The hook extracts:
 ## Troubleshooting
 
 **No spans appearing**
-- Make sure the hook is passed in the `telemetry.hooks` array of your Mastra configuration.
-- Verify that `LANTERN_API_KEY` and `LANTERN_BASE_URL` are set correctly.
+- Verify your application bridge calls `onSpanStart` and `onSpanEnd` with normalized events.
+- Configure the tracer's exporter for your destination; a console exporter does not send to an ingest service.
 
 **Trace never ends**
 - You must call `hook.finish()` explicitly when the agent interaction is complete. The hook does not auto-detect when all spans are done.

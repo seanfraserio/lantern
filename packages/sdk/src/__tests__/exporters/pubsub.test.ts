@@ -13,10 +13,9 @@ const mockTopic = vi.fn().mockReturnValue({
 });
 
 vi.mock("@google-cloud/pubsub", () => ({
-  PubSub: vi.fn().mockImplementation(() => ({
-    topic: mockTopic,
-    close: mockClose,
-  })),
+  PubSub: vi.fn().mockImplementation(function () {
+    return { topic: mockTopic, close: mockClose };
+  }),
 }));
 
 // Import AFTER the mock is set up.

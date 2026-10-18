@@ -22,7 +22,11 @@ Authorization: Bearer <LANTERN_API_KEY>
 
 The key is compared using `crypto.timingSafeEqual` to prevent timing attacks.
 
-If `LANTERN_API_KEY` is not set, `/v1/*` endpoints are unauthenticated.
+If `LANTERN_API_KEY` is not set, `/v1/*` endpoints are unauthenticated **only**
+when the server binds to localhost (`127.0.0.1`, `::1`, or `localhost`), or when
+`LANTERN_ALLOW_INSECURE=true` is set explicitly for isolated development.
+Binding to any other host without an API key fails startup before the server
+listens. Multi-tenant mode always requires a tenant API key on `/v1/*`.
 
 ### Multi-tenant mode
 
@@ -50,8 +54,11 @@ based on the tenant's plan:
 | `team` | 1,000,000 |
 | `enterprise` | 999,999,999 (effectively unlimited) |
 
-Usage is checked from the `public.usage` table, cached for 60 seconds per
-tenant. When the limit is exceeded, POST requests receive a `429` response:
+Usage is read from the `public.usage` table and cached for 60 seconds per
+tenant. The ingest server does not increment that table and does not reserve
+accepted batch sizes against the cached count, so the gate is approximate.
+An external worker must update `trace_count`. When the cached count is already
+at the plan limit, POST requests receive a `429` response:
 
 ```json
 {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createRequire } from "node:module";
+import { version as SDK_VERSION } from "../package.json";
 import type {
   Trace,
   TraceSource,
@@ -10,12 +10,11 @@ import type {
   StartSpanOpts,
   SpanOutput,
   TraceStatus,
+  TraceDropEvent,
 } from "./types.js";
 import { AgentSpan } from "./span.js";
 import { Prompt, PromptClient } from "./prompts.js";
 
-const require = createRequire(import.meta.url);
-const { version: SDK_VERSION } = require("../package.json") as { version: string };
 
 /**
  * Core tracer for Lantern. Manages traces and spans, and exports them
@@ -35,11 +34,20 @@ export class LanternTracer {
   private environment: string;
   private source: TraceSource;
   private promptClient?: PromptClient;
+  private maxBufferSize: number;
+  private onTraceDrop?: (event: TraceDropEvent) => void;
+  private droppedTraces = 0;
 
   constructor(config: TracerConfig) {
     this.exporter = config.exporter;
     this.batchSize = config.batchSize ?? 50;
     this.flushIntervalMs = config.flushIntervalMs ?? 5000;
+    const configuredMax = config.maxBufferSize ?? MAX_BUFFER_SIZE;
+    if (!Number.isInteger(configuredMax) || configuredMax < 1) {
+      throw new Error(`maxBufferSize must be a positive integer, received ${String(config.maxBufferSize)}`);
+    }
+    this.maxBufferSize = configuredMax;
+    this.onTraceDrop = config.onTraceDrop;
     this.serviceName = config.serviceName ?? "unknown";
     this.environment = config.environment ?? "dev";
     this.source = {
@@ -146,14 +154,7 @@ export class LanternTracer {
     this.buffer.push(trace);
     this.traces.delete(traceId);
 
-    // Guard against unbounded buffer growth
-    if (this.buffer.length > MAX_BUFFER_SIZE) {
-      const dropped = this.buffer.length - MAX_BUFFER_SIZE;
-      this.buffer = this.buffer.slice(dropped);
-      console.warn(
-        `[lantern] Buffer exceeded ${MAX_BUFFER_SIZE} traces. Dropped ${dropped} oldest traces.`
-      );
-    }
+    this.dropOldest("buffer_full");
 
     // Auto-flush if buffer is full
     if (this.buffer.length >= this.batchSize) {
@@ -191,16 +192,35 @@ export class LanternTracer {
       await this.exporter.export(toExport);
     } catch (error) {
       this.buffer.unshift(...toExport);
-      // Prevent unbounded growth on repeated export failures
-      if (this.buffer.length > MAX_BUFFER_SIZE) {
-        const dropped = this.buffer.length - MAX_BUFFER_SIZE;
-        this.buffer = this.buffer.slice(dropped);
-        console.warn(
-          `[lantern] Buffer exceeded ${MAX_BUFFER_SIZE} after failed flush. Dropped ${dropped} oldest traces.`
-        );
-      }
+      this.dropOldest("flush_failed");
       throw error;
     }
+  }
+
+  /** Cumulative oldest traces dropped by the bounded buffer. */
+  get droppedTraceCount(): number {
+    return this.droppedTraces;
+  }
+
+  private dropOldest(reason: TraceDropEvent["reason"]): void {
+    if (this.buffer.length <= this.maxBufferSize) return;
+    const dropped = this.buffer.length - this.maxBufferSize;
+    this.buffer = this.buffer.slice(dropped);
+    this.droppedTraces += dropped;
+    const event: TraceDropEvent = {
+      dropped,
+      bufferSize: this.buffer.length,
+      maxBufferSize: this.maxBufferSize,
+      reason,
+    };
+    try {
+      this.onTraceDrop?.(event);
+    } catch (error) {
+      console.warn("[lantern] onTraceDrop observer failed:", error);
+    }
+    console.warn(
+      `[lantern] Buffer exceeded ${this.maxBufferSize} traces. Dropped ${dropped} oldest traces (${reason}).`
+    );
   }
 
   /**

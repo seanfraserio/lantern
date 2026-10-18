@@ -7,6 +7,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     }
@@ -22,11 +23,11 @@
   },
   "dependencies": {
     "@openlantern-ai/sdk": "workspace:*",
-    "fastify": "^5.8.4"
+    "fastify": "^5.12.7"
   },
   "devDependencies": {
-    "tsup": "^8.0.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.4.0",
-    "vitest": "^1.4.0"
+    "vitest": "^4.1.11"
   }
 }

@@ -27,6 +27,7 @@ export type {
   SpanOutput,
   EvalScore,
   TracerConfig,
+  TraceDropEvent,
   ITraceExporter,
   StartTraceOpts,
   StartSpanOpts,

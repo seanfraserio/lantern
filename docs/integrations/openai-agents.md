@@ -1,24 +1,27 @@
 # OpenAI Agents SDK
 
-Trace agent runs, LLM generations, tool calls, and handoffs from the OpenAI Agents SDK (`@openai/agents`) with a dedicated trace processor.
+Trace normalized agent runs, LLM generations, tool calls, and handoffs using callbacks that your application connects to its framework.
 
 ## Installation
 
 ```bash
-npm install @openlantern-ai/sdk @openlantern-ai/openai-agents @openai/agents
+npm install @openlantern-ai/sdk @openlantern-ai/openai-agents
 ```
 
-The OpenAI Agents integration is a separate package (`@openlantern-ai/openai-agents`) because it depends on `@openai/agents` as a peer dependency.
+This package exposes normalized trace/span callbacks. Only the Lantern SDK is a
+required peer; neither its runtime nor its declarations import `@openai/agents`.
+Install the framework separately when your application uses it. The application
+must bridge framework events to this adapter's structural event contract; direct
+native processor registration is not verified across framework versions.
 
 ## Setup
 
 ```typescript
-import { LanternTracer } from "@openlantern-ai/sdk";
+import { LanternTracer, ConsoleExporter } from "@openlantern-ai/sdk";
 import { createLanternTraceProcessor } from "@openlantern-ai/openai-agents";
 
 const tracer = new LanternTracer({
-  apiKey: process.env.LANTERN_API_KEY,
-  baseUrl: process.env.LANTERN_BASE_URL,
+  exporter: new ConsoleExporter(),
 });
 
 const processor = createLanternTraceProcessor(tracer, {
@@ -28,38 +31,33 @@ const processor = createLanternTraceProcessor(tracer, {
 
 ## Usage
 
-### Register the trace processor
+### Forward normalized events
 
 ```typescript
-import { Agent, Runner } from "@openai/agents";
-
-const agent = new Agent({
-  name: "research-assistant",
-  instructions: "You are a helpful research assistant.",
-  model: "gpt-4",
+processor.onTraceStart({ traceId: "run-1", name: "research-assistant" });
+processor.onSpanStart({
+  traceId: "run-1", spanId: "generation-1", type: "generation",
+  model: "your-model", input: "Summarize the supplied document",
 });
-
-const runner = new Runner({
-  traceProcessors: [processor],
+processor.onSpanEnd({
+  traceId: "run-1", spanId: "generation-1", output: "A summary",
+  usage: { inputTokens: 100, outputTokens: 20 },
 });
-
-const result = await runner.run(agent, "What are the latest AI trends?");
-console.log(result.output);
+processor.onTraceEnd({ traceId: "run-1" });
 ```
 
 ### Multi-agent handoffs
 
-The processor traces handoffs between agents as `reasoning_step` spans, preserving the full delegation chain:
+Normalized handoff events become `reasoning_step` spans. The adapter does not infer native framework delegation relationships:
 
 ```typescript
-const triageAgent = new Agent({
-  name: "triage",
-  instructions: "Route to the appropriate specialist agent.",
-  handoffs: [researchAgent, writingAgent],
+processor.onTraceStart({ traceId: "run-2", name: "triage" });
+processor.onSpanStart({
+  traceId: "run-2", spanId: "handoff-1", type: "handoff",
+  input: { from: "triage", to: "research" },
 });
-
-const result = await runner.run(triageAgent, "Write a blog post about AI safety");
-// Trace shows: triage → research-agent → writing-agent
+processor.onSpanEnd({ traceId: "run-2", spanId: "handoff-1", output: "delegated" });
+processor.onTraceEnd({ traceId: "run-2" });
 ```
 
 ## What Gets Traced
@@ -79,8 +77,8 @@ The processor maintains a mapping between OpenAI Agents trace/span IDs and Lante
 ## Troubleshooting
 
 **No traces appearing**
-- Verify the processor is passed in the `traceProcessors` array on the `Runner`, not on the `Agent`.
-- Check that `LANTERN_API_KEY` and `LANTERN_BASE_URL` are set correctly.
+- Verify your application bridge emits `onTraceStart` before span callbacks and ends the same trace ID.
+- Configure an exporter that sends to your intended destination.
 
 **Missing token usage**
 - Token usage is read from the `data.usage` object on span end events. If the agent run doesn't include usage data, these fields default to `0`.

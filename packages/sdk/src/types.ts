@@ -82,6 +82,13 @@ export interface EvalScore {
 
 // ─── Tracer configuration ───
 
+export interface TraceDropEvent {
+  dropped: number;
+  bufferSize: number;
+  maxBufferSize: number;
+  reason: "buffer_full" | "flush_failed";
+}
+
 export interface TracerConfig {
   serviceName?: string;
   environment?: string;
@@ -89,6 +96,10 @@ export interface TracerConfig {
   batchSize?: number;
   flushIntervalMs?: number;
   promptsEndpoint?: string;
+  /** Test seam. Production default remains 10_000. */
+  maxBufferSize?: number;
+  /** Called when oldest buffered traces are dropped to bound memory. */
+  onTraceDrop?: (event: TraceDropEvent) => void;
 }
 
 export interface ITraceExporter {

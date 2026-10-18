@@ -8,10 +8,9 @@ const mockQueuePath = vi
   .mockReturnValue("projects/p/locations/l/queues/q");
 
 vi.mock("@google-cloud/tasks", () => ({
-  CloudTasksClient: vi.fn().mockImplementation(() => ({
-    createTask: mockCreateTask,
-    queuePath: mockQueuePath,
-  })),
+  CloudTasksClient: vi.fn().mockImplementation(function () {
+    return { createTask: mockCreateTask, queuePath: mockQueuePath };
+  }),
 }));
 
 const defaultConfig: EvalTriggerConfig = {

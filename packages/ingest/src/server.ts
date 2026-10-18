@@ -14,6 +14,11 @@ import type { ITraceStore } from "@openlantern-ai/sdk";
 import type { EvalTrigger } from "./triggers/eval-trigger.js";
 import type { PubSubTraceConsumer } from "./consumers/pubsub-consumer.js";
 
+export interface ListenOptions {
+  port: number;
+  host: string;
+}
+
 export interface IngestServerConfig {
   port: number;
   host: string;
@@ -23,6 +28,31 @@ export interface IngestServerConfig {
   databaseUrl?: string;
   multiTenant?: boolean;
   configPath?: string;
+  /**
+   * Explicit opt-in for unauthenticated single-tenant binds on a non-localhost
+   * interface. Default false. Localhost development does not need this flag.
+   * Set LANTERN_ALLOW_INSECURE=true only for isolated development.
+   */
+  allowInsecure?: boolean;
+  /**
+   * Optional listen seam. Production uses app.listen. Tests inject this so
+   * startup policy can be asserted without binding a socket.
+   */
+  listen?: (options: ListenOptions) => Promise<void>;
+  /**
+   * Optional tenant-store factory. Production creates a Postgres store.
+   * Tests inject this so request leases can be asserted without a database.
+   */
+  createTenantStore?: (tenantSlug: string) => Promise<ITraceStore & ClosableStore>;
+  /**
+   * Optional tenant lookup. Production uses TenantResolver against Postgres.
+   * Tests inject this so multi-tenant request leases need no database.
+   */
+  resolveTenant?: (apiKey: string) => Promise<{ tenantId: string; tenantSlug: string } | null>;
+  /** Optional usage-query pool. Production uses the multi-tenant pg pool. */
+  usagePool?: UsageQueryPool;
+  /** Optional store cache. Production allocates a 100-entry cache. */
+  storeCache?: StoreCache<ITraceStore & ClosableStore>;
 }
 
 /**
@@ -66,21 +96,340 @@ function maskApiKeys(cfg: LanternConfig): LanternConfig {
   };
 }
 
+/**
+ * Plan ceilings used by the multi-tenant ingest gate. These are compared
+ * against public.usage.trace_count, which this package only reads.
+ */
+export const PLAN_LIMITS: Record<string, number> = {
+  free: 10_000,
+  starter: 100_000, // legacy
+  team: 1_000_000,
+  team_plus: 5_000_000,
+  enterprise: 999_999_999, // effectively unlimited
+};
+
+export const USAGE_CACHE_TTL_MS = 60_000;
+
+export interface UsageCacheEntry {
+  count: number;
+  plan: string;
+  checkedAt: number;
+}
+
+export interface UsageLimitDecision {
+  allowed: boolean;
+  plan: string;
+  count: number;
+  limit: number;
+}
+
+export interface ClosableStore {
+  close?: () => Promise<void> | void;
+}
+
+export interface CachedStoreEntry<T> {
+  key: string;
+  store: T;
+  lastAccess: number;
+  refs: number;
+}
+
+/** A hold on one exact cached store, not merely its tenant key. */
+export interface StoreLease<T> {
+  readonly store: T;
+  release(): Promise<void>;
+}
+
+/**
+ * LRU store cache that will not close a store while a request still holds it.
+ * Each acquire returns a lease bound to that entry. Eviction removes the live
+ * cache entry immediately, but close is deferred until that entry's own leases
+ * reach zero. A later insert of the same key cannot steal those leases, and
+ * an unresolved generation is never overwritten by a newer eviction.
+ */
+export class StoreCache<T extends ClosableStore> {
+  private entries = new Map<string, CachedStoreEntry<T>>();
+  private deferred = new Set<CachedStoreEntry<T>>();
+  private inflight = new Map<string, Promise<T>>();
+
+  constructor(private readonly maxSize: number) {}
+
+  get size(): number {
+    return this.entries.size;
+  }
+
+  acquire(key: string, now: number = Date.now()): T | undefined {
+    return this.acquireLease(key, now)?.store;
+  }
+
+  acquireLease(key: string, now: number = Date.now()): StoreLease<T> | undefined {
+    const entry = this.entries.get(key);
+    if (!entry) return undefined;
+    entry.lastAccess = now;
+    entry.refs += 1;
+    return this.leaseFor(entry);
+  }
+
+  /**
+   * Insert a new store, evicting the least-recently-used cached entry when full.
+   * The returned lease is already acquired (refs = 1) for the caller and is
+   * bound to this store identity. An idle evicted store is closed immediately.
+   * A store with in-flight leases stays open until those leases release.
+   * If the key is already live, the supplied store is unused and closed.
+   */
+  async insert(key: string, store: T, now: number = Date.now()): Promise<StoreLease<T>> {
+    const existing = this.entries.get(key);
+    if (existing) {
+      return this.holdExisting(existing, store, now);
+    }
+    // An idle store's asynchronous close yields to other inserts. Recheck the
+    // live capacity after every eviction rather than exceeding the configured bound.
+    while (this.entries.size >= this.maxSize) {
+      await this.evictLeastRecentlyUsed();
+      const installed = this.entries.get(key);
+      if (installed) return this.holdExisting(installed, store, now);
+    }
+    const raced = this.entries.get(key);
+    if (raced) {
+      return this.holdExisting(raced, store, now);
+    }
+    const entry: CachedStoreEntry<T> = { key, store, lastAccess: now, refs: 1 };
+    this.entries.set(key, entry);
+    return this.leaseFor(entry);
+  }
+
+  /**
+   * One creation per key while a first miss is in flight. Callers share that
+   * promise and each receive their own lease. A store that loses the install
+   * race is closed instead of cached.
+   */
+  getOrCreate(
+    key: string,
+    create: () => Promise<T>,
+    now: number = Date.now(),
+  ): Promise<StoreLease<T>> {
+    const live = this.acquireLease(key, now);
+    if (live) return Promise.resolve(live);
+    const pending = this.inflight.get(key);
+    if (pending) {
+      return pending.then((store) => this.insert(key, store, now));
+    }
+    const created = (async () => {
+      const live = this.acquireLease(key, now);
+      if (live) return live.store;
+      return create();
+    })();
+    this.inflight.set(key, created);
+    // Observe both outcomes here. A detached finally on the raw promise
+    // becomes an unhandled rejection when create() fails, and a late waiter
+    // may attach only after the caller's rejection handler has already run.
+    void created.then(
+      () => {
+        this.clearInflight(key, created);
+      },
+      () => {
+        this.clearInflight(key, created);
+      },
+    );
+    return created.then((store) => this.insert(key, store, now));
+  }
+
+  /**
+   * Release one hold previously taken by string key. Prefer lease.release(),
+   * which cannot select a newer generation of the same key.
+   */
+  async release(key: string): Promise<void> {
+    const live = this.entries.get(key);
+    if (live && live.refs > 0) {
+      await this.releaseEntry(live);
+      return;
+    }
+    const evicted = [...this.deferred].find((entry) => entry.key === key && entry.refs > 0);
+    if (!evicted) return;
+    await this.releaseEntry(evicted);
+  }
+
+  private holdExisting(
+    entry: CachedStoreEntry<T>,
+    store: T,
+    now: number,
+  ): Promise<StoreLease<T>> {
+    entry.lastAccess = now;
+    entry.refs += 1;
+    if (entry.store !== store) {
+      return this.closeUnused(store, entry.store).then(() => this.leaseFor(entry));
+    }
+    return Promise.resolve(this.leaseFor(entry));
+  }
+
+  private clearInflight(key: string, created: Promise<T>): void {
+    if (this.inflight.get(key) === created) this.inflight.delete(key);
+  }
+
+  private leaseFor(entry: CachedStoreEntry<T>): StoreLease<T> {
+    let released = false;
+    return {
+      store: entry.store,
+      release: async () => {
+        if (released) return;
+        released = true;
+        await this.releaseEntry(entry);
+      },
+    };
+  }
+
+  private async releaseEntry(entry: CachedStoreEntry<T>): Promise<void> {
+    entry.refs = Math.max(0, entry.refs - 1);
+    if (entry.refs > 0) return;
+    if (this.entries.get(entry.key) === entry) return;
+    if (!this.deferred.has(entry)) return;
+    this.deferred.delete(entry);
+    await entry.store.close?.();
+  }
+
+  private async closeUnused(unused: T, kept: T): Promise<void> {
+    if (unused === kept) return;
+    await unused.close?.();
+  }
+
+  private async evictLeastRecentlyUsed(): Promise<void> {
+    let lruKey: string | null = null;
+    let lruTime = Infinity;
+    for (const [key, entry] of this.entries) {
+      if (entry.lastAccess < lruTime) {
+        lruTime = entry.lastAccess;
+        lruKey = key;
+      }
+    }
+    if (!lruKey) return;
+    const evicted = this.entries.get(lruKey);
+    this.entries.delete(lruKey);
+    if (!evicted) return;
+    if (evicted.refs > 0) {
+      this.deferred.add(evicted);
+      return;
+    }
+    await evicted.store.close?.();
+  }
+}
+
+export interface UsageQueryPool {
+  query(sql: string, params?: unknown[]): Promise<{ rows: Array<Record<string, unknown>> }>;
+}
+
+/**
+ * Decide whether a tenant may ingest, using a 60-second cache of public.usage.
+ *
+ * This is an approximate gate, not an atomic reservation:
+ * - the cached count is not incremented when a batch is accepted
+ * - concurrent requests inside the TTL all see the same snapshot
+ * - this package does not write public.usage; an external worker must
+ *
+ * Callers must not treat `allowed: true` as a hard per-batch quota hold.
+ */
+export async function checkApproximateUsageLimit(
+  pool: UsageQueryPool,
+  usageCache: Map<string, UsageCacheEntry>,
+  tenantId: string,
+  now: number = Date.now(),
+): Promise<UsageLimitDecision> {
+  const cached = usageCache.get(tenantId);
+  if (cached && now - cached.checkedAt < USAGE_CACHE_TTL_MS) {
+    const limit = PLAN_LIMITS[cached.plan] ?? PLAN_LIMITS.free;
+    return { allowed: cached.count < limit, plan: cached.plan, count: cached.count, limit };
+  }
+
+  const month = new Date(now).toISOString().slice(0, 7);
+  const { rows } = await pool.query(
+    `SELECT t.plan, COALESCE(u.trace_count, 0)::int AS trace_count
+     FROM public.tenants t
+     LEFT JOIN public.usage u ON u.tenant_id = t.id AND u.month = $2
+     WHERE t.id = $1`,
+    [tenantId, month]
+  );
+
+  const plan = (rows[0]?.plan as string) ?? "free";
+  const count = (rows[0]?.trace_count as number) ?? 0;
+  const limit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+
+  usageCache.set(tenantId, { count, plan, checkedAt: now });
+  return { allowed: count < limit, plan, count, limit };
+}
+
+const LOCAL_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
+
+function isLocalHost(host: string): boolean {
+  return LOCAL_HOSTS.has(host);
+}
+
+function insecureDevOptIn(config?: Partial<IngestServerConfig>): boolean {
+  if (config?.allowInsecure === true) return true;
+  return process.env.LANTERN_ALLOW_INSECURE === "true";
+}
+
+/**
+ * Single-tenant servers must not expose an unauthenticated API on a
+ * non-localhost interface. Rejection happens before stores, pools, or the
+ * HTTP listener are allocated. Multi-tenant mode authenticates every /v1/
+ * request with a tenant API key and is not subject to this check.
+ */
+export function assertSingleTenantBindAllowed(
+  host: string,
+  apiKey: string | undefined,
+  opts?: { allowInsecure?: boolean; multiTenant?: boolean; databaseUrl?: string },
+): void {
+  if (opts?.multiTenant) {
+    if (opts.databaseUrl) return;
+    const message =
+      "[lantern] *** SECURITY ERROR ***: multi-tenant mode requires a database URL. " +
+      "Without one, tenant API keys are not checked and the server would start unauthenticated. " +
+      "Set DATABASE_URL or storage.url before binding.";
+    console.error(message);
+    throw new Error(message);
+  }
+  if (apiKey) return;
+  if (isLocalHost(host)) return;
+  if (opts?.allowInsecure) {
+    console.warn(
+      "[lantern] WARNING: LANTERN_ALLOW_INSECURE is set. Starting without an API key on " +
+      host + ". Do not use this outside an isolated development network."
+    );
+    return;
+  }
+  const message =
+    "[lantern] *** SECURITY ERROR ***: No API key configured and server is binding to " + host + ". " +
+    "The ingest API is accessible without authentication on a non-localhost interface. " +
+    "This is dangerous in production. Set LANTERN_API_KEY or configure auth.api_keys in lantern.yaml, " +
+    "or bind to localhost (host: 127.0.0.1) to restrict access. " +
+    "Set LANTERN_ALLOW_INSECURE=true only for isolated development.";
+  console.error(message);
+  throw new Error(message);
+}
+
 export async function createServer(config?: Partial<IngestServerConfig>) {
   // Load YAML config (falls back to defaults when no file exists)
   const yamlConfig = loadConfig(config?.configPath);
 
   const port = config?.port ?? parseInt(process.env.PORT ?? String(yamlConfig.server.port), 10);
-  const host = config?.host ?? yamlConfig.server.host;
+  const host = config?.host ?? process.env.HOST ?? yamlConfig.server.host;
   const databaseUrl = config?.databaseUrl ?? process.env.DATABASE_URL ?? yamlConfig.storage.url ?? "";
   const multiTenant = config?.multiTenant ?? process.env.MULTI_TENANT === "true";
+  // Compose can export an empty key; treat that environment value as unset.
+  // Explicit configuration still takes precedence, including an empty string.
+  const apiKey = config?.apiKey ?? (process.env.LANTERN_API_KEY || yamlConfig.auth?.api_keys?.find((k) => k.length > 0));
+
+  // Fail closed before allocating stores, prompt DBs, or a listening socket.
+  assertSingleTenantBindAllowed(host, apiKey, {
+    allowInsecure: insecureDevOptIn(config),
+    multiTenant,
+    databaseUrl,
+  });
 
   console.log("[lantern] Loaded config:", JSON.stringify(maskApiKeys(yamlConfig), null, 2));
 
   // In single-tenant mode, use a fixed store
   // In multi-tenant mode, store is resolved per-request via TenantResolver
   const defaultStore = await resolveDefaultStore(config, yamlConfig);
-  const apiKey = config?.apiKey ?? process.env.LANTERN_API_KEY;
 
   // Prompt store (SQLite-backed, shared across tenants)
   const { PromptStore } = await import("./store/prompt-store.js");
@@ -182,53 +531,37 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     console.log(`[lantern] Pub/Sub consumer started on ${pubsubSubscription}`);
   }
 
-  if (multiTenant && databaseUrl) {
+  if (multiTenant && (databaseUrl || config?.resolveTenant)) {
     // ── Multi-tenant mode ──
     // Resolve API key → tenant on every /v1/ request
-    const pg = await import("pg");
-    const pool = instrumentPool(new pg.default.Pool({ connectionString: databaseUrl, max: 15 }));
-    const { TenantResolver } = await import("./middleware/tenant.js");
-    const resolver = new TenantResolver(pool);
+    const pool = config?.usagePool ?? (databaseUrl
+      ? instrumentPool(new (await import("pg")).default.Pool({ connectionString: databaseUrl, max: 15 }))
+      : undefined);
+    const resolver = config?.resolveTenant
+      ? { resolve: config.resolveTenant }
+      : new (await import("./middleware/tenant.js")).TenantResolver(
+          pool as ConstructorParameters<typeof import("./middleware/tenant.js").TenantResolver>[0],
+        );
 
-    // Store cache: reuse PostgresTraceStore instances per tenant (max 100, LRU eviction)
+    // Store cache: reuse PostgresTraceStore instances per tenant (max 100, LRU eviction).
+    // In-flight requests hold a ref so eviction cannot close a pool still in use.
     const STORE_CACHE_MAX = 100;
-    const storeCache = new Map<string, ITraceStore>();
-    const storeCacheLastAccess = new Map<string, number>();
+    const storeCache = config?.storeCache ?? new StoreCache<ITraceStore & ClosableStore>(STORE_CACHE_MAX);
 
     // Usage limit cache: { tenantId -> { count, checkedAt } }
-    const PLAN_LIMITS: Record<string, number> = {
-      free: 10_000,
-      starter: 100_000, // legacy
-      team: 1_000_000,
-      team_plus: 5_000_000,
-      enterprise: 999_999_999, // effectively unlimited
-    };
-    const usageCache = new Map<string, { count: number; plan: string; checkedAt: number }>();
+    // Approximate only. public.usage is not incremented by this process, and
+    // accepted batches are not reserved against the cached count.
+    const usageCache = new Map<string, UsageCacheEntry>();
 
-    const checkUsageLimit = async (tenantId: string): Promise<{ allowed: boolean; plan: string; count: number; limit: number }> => {
-      const cached = usageCache.get(tenantId);
-      // Re-check every 60 seconds
-      if (cached && Date.now() - cached.checkedAt < 60_000) {
-        const limit = PLAN_LIMITS[cached.plan] ?? PLAN_LIMITS.free;
-        return { allowed: cached.count < limit, plan: cached.plan, count: cached.count, limit };
-      }
+    const checkUsageLimit = (tenantId: string) =>
+      pool
+        ? checkApproximateUsageLimit(pool, usageCache, tenantId)
+        : Promise.resolve({ allowed: true, plan: "free", count: 0, limit: PLAN_LIMITS.free });
 
-      const month = new Date().toISOString().slice(0, 7);
-      const { rows } = await pool.query(
-        `SELECT t.plan, COALESCE(u.trace_count, 0)::int AS trace_count
-         FROM public.tenants t
-         LEFT JOIN public.usage u ON u.tenant_id = t.id AND u.month = $2
-         WHERE t.id = $1`,
-        [tenantId, month]
-      );
-
-      const plan = (rows[0]?.plan as string) ?? "free";
-      const count = (rows[0]?.trace_count as number) ?? 0;
-      const limit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
-
-      usageCache.set(tenantId, { count, plan, checkedAt: Date.now() });
-      return { allowed: count < limit, plan, count, limit };
-    };
+    app.addHook("onResponse", async (request) => {
+      const release = (request as unknown as Record<string, unknown>).releaseTenantStore;
+      if (typeof release === "function") release();
+    });
 
     app.addHook("onRequest", async (request, reply) => {
       if (!request.url.startsWith("/v1/")) return;
@@ -261,38 +594,32 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
         }
       }
 
-      // Get or create a store for this tenant
-      let store = storeCache.get(tenant.tenantSlug);
-      if (store) {
-        // Update last access time for LRU tracking
-        storeCacheLastAccess.set(tenant.tenantSlug, Date.now());
-      } else {
-        // Evict least recently used entry if cache is full
-        if (storeCache.size >= STORE_CACHE_MAX) {
-          let lruKey: string | null = null;
-          let lruTime = Infinity;
-          for (const [key, accessTime] of storeCacheLastAccess) {
-            if (accessTime < lruTime) {
-              lruTime = accessTime;
-              lruKey = key;
-            }
-          }
-          if (lruKey) {
-            const evicted = storeCache.get(lruKey);
-            storeCache.delete(lruKey);
-            storeCacheLastAccess.delete(lruKey);
-            if (evicted && "close" in evicted && typeof (evicted as { close: () => Promise<void> }).close === "function") {
-              (evicted as { close: () => Promise<void> }).close().catch(() => {});
-            }
-          }
-        }
-        store = await createPostgresStore(databaseUrl, `tenant_${tenant.tenantSlug}`, 3);
-        storeCache.set(tenant.tenantSlug, store);
-        storeCacheLastAccess.set(tenant.tenantSlug, Date.now());
-      }
+      // Get or create a store for this tenant. The lease is bound to the exact
+      // entry acquired for this request and is released once on finish or close.
+      const lease = await storeCache.getOrCreate(tenant.tenantSlug, () =>
+        config?.createTenantStore
+          ? config.createTenantStore(tenant.tenantSlug)
+          : createPostgresStore(databaseUrl, `tenant_${tenant.tenantSlug}`, 3),
+      );
+      let released = false;
+      const releaseStore = () => {
+        if (released) return;
+        released = true;
+        lease.release().catch(() => {});
+      };
+      // Release only when the response is done or the connection dies before
+      // a response can finish. IncomingMessage "close" is not that signal:
+      // Node emits it when the request body completes, while the handler may
+      // still be writing through the leased store. onResponse covers inject(),
+      // which does not emit the socket events. The flag makes these once-only.
+      reply.raw.once("finish", releaseStore);
+      reply.raw.once("close", releaseStore);
+      reply.raw.once("error", releaseStore);
+      request.raw.once("aborted", releaseStore);
+      (request as unknown as Record<string, unknown>).releaseTenantStore = releaseStore;
 
       // Attach tenant info and store to the request
-      (request as unknown as Record<string, unknown>).tenantStore = store;
+      (request as unknown as Record<string, unknown>).tenantStore = lease.store;
       (request as unknown as Record<string, unknown>).tenantId = tenant.tenantId;
       (request as unknown as Record<string, unknown>).tenantSlug = tenant.tenantSlug;
     });
@@ -305,20 +632,10 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   } else {
     // ── Single-tenant mode (OSS / self-hosted) ──
     if (!apiKey) {
-      const isLocalhost = host === "127.0.0.1" || host === "::1" || host === "localhost";
-      if (!isLocalhost) {
-        console.error(
-          "[lantern] *** SECURITY ERROR ***: No API key configured and server is binding to " + host + ". " +
-          "The ingest API is accessible without authentication on a non-localhost interface. " +
-          "This is dangerous in production. Set LANTERN_API_KEY or configure auth.api_keys in lantern.yaml, " +
-          "or bind to localhost (host: 127.0.0.1) to restrict access."
-        );
-      } else {
-        console.warn(
-          "[lantern] WARNING: No API key configured. The ingest server is running without authentication. " +
-          "Set LANTERN_API_KEY or configure auth.api_keys in lantern.yaml to secure the API."
-        );
-      }
+      console.warn(
+        "[lantern] WARNING: No API key configured. The ingest server is running without authentication. " +
+        "Set LANTERN_API_KEY or configure auth.api_keys in lantern.yaml to secure the API."
+      );
     }
     if (apiKey) {
       const { timingSafeEqual } = await import("node:crypto");
@@ -349,7 +666,11 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
     });
   }
 
-  await app.listen({ port, host });
+  if (config?.listen) {
+    await config.listen({ port, host });
+  } else {
+    await app.listen({ port, host });
+  }
 
   return { app, store: defaultStore };
 }

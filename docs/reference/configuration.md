@@ -18,7 +18,9 @@ The ingest server receives traces from SDKs and the LLM proxy.
 | `DATABASE_URL` | -- | PostgreSQL connection string. Required for Postgres storage. Example: `postgresql://lantern:pass@localhost:5432/lantern` |
 | `STORE_TYPE` | `sqlite` | Storage backend: `sqlite` or `postgres`. Ignored if `DATABASE_URL` is set (uses Postgres). |
 | `MULTI_TENANT` | `false` | Enable multi-tenant mode. Requires `DATABASE_URL`. When `true`, API keys are resolved via the `api_keys` table and each tenant gets a separate schema. |
-| `LANTERN_API_KEY` | -- | Shared API key for single-tenant mode. All `/v1/*` requests must include this as a Bearer token. Ignored in multi-tenant mode. |
+| `LANTERN_API_KEY` | -- | Shared API key for single-tenant mode. All `/v1/*` requests must include this as a Bearer token. Ignored in multi-tenant mode. Required when binding a non-localhost interface unless `LANTERN_ALLOW_INSECURE=true`. |
+| `HOST` | `127.0.0.1` | Bind address. Unauthenticated single-tenant startup refuses non-localhost values before listening. |
+| `LANTERN_ALLOW_INSECURE` | `false` | Explicit development opt-in. When `true`, allows an unauthenticated single-tenant bind on a non-localhost interface. Do not set this in production. |
 | `TENANT_SCHEMA` | `public` | PostgreSQL schema for single-tenant Postgres mode. |
 
 ### Programmatic Configuration

@@ -16,6 +16,11 @@ npm install @openlantern-ai/sdk
 
 ## Setup
 
+The adapter accepts an existing client with a `chat.complete` method. It does not
+import or auto-install Mistral's SDK, and its declarations do not require Mistral
+types. Install that SDK for your application when needed. The only required peer
+is the Lantern SDK.
+
 ```typescript
 import { Mistral } from "@mistralai/mistralai";
 import { LanternTracer, LanternExporter } from "@openlantern-ai/sdk";
