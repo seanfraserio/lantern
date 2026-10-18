@@ -23,7 +23,6 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -34,6 +33,10 @@ jobs:
       - name: Run Claude
         uses: anthropics/claude-code-action@v1
         with:
+          # Job-scoped token: no Claude App installation or OIDC exchange.
+          github_token: ${{ github.token }}
+          bot_id: "41898282"
+          bot_name: "github-actions[bot]"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
   # ============================================
@@ -50,7 +53,6 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -61,6 +63,10 @@ jobs:
       - name: Run Claude Review
         uses: anthropics/claude-code-action@v1
         with:
+          # Job-scoped token: no Claude App installation or OIDC exchange.
+          github_token: ${{ github.token }}
+          bot_id: "41898282"
+          bot_name: "github-actions[bot]"
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Review this pull request for:

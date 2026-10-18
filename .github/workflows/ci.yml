@@ -18,6 +18,8 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Claude integration contracts
+        run: node --test scripts/claude-workflow.test.mjs
       - name: Security audit
         run: pnpm audit --audit-level=high
       - run: pnpm build

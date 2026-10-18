@@ -42,11 +42,11 @@ test('build and lint tools stay on patched Node 20 compatible majors', () => {
   assert.ok(!Object.keys(manifest.pnpm.overrides).some(key => /^(vitest|vite|esbuild|@opentelemetry\/core)$/.test(key)));
 });
 
-test('Claude jobs can request their required GitHub App OIDC token', () => {
+test('Claude jobs use the scoped repository token instead of App OIDC', () => {
   const workflow = readFileSync(join(root, '.github/workflows/claude.yml'), 'utf8');
   for (const job of ['claude-respond', 'claude-review']) {
     const block = workflow.split(`  ${job}:`)[1]?.split(/\n  [a-z][a-z-]+:/)[0];
-    assert.match(block ?? '', /permissions:\n(?:      [^\n]+\n)*      id-token: write\n/, job);
+    assert.match(block ?? '', /github_token: \$\{\{ github\.token \}\}/, job);
   }
 });
 
