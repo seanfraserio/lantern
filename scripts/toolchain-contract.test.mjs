@@ -42,6 +42,19 @@ test('build and lint tools stay on patched Node 20 compatible majors', () => {
   assert.ok(!Object.keys(manifest.pnpm.overrides).some(key => /^(vitest|vite|esbuild|@opentelemetry\/core)$/.test(key)));
 });
 
+test('Claude jobs can request their required GitHub App OIDC token', () => {
+  const workflow = readFileSync(join(root, '.github/workflows/claude.yml'), 'utf8');
+  for (const job of ['claude-respond', 'claude-review']) {
+    const block = workflow.split(`  ${job}:`)[1]?.split(/\n  [a-z][a-z-]+:/)[0];
+    assert.match(block ?? '', /permissions:\n(?:      [^\n]+\n)*      id-token: write\n/, job);
+  }
+});
+
+test('Claude review reruns for the exact updated PR head', () => {
+  const workflow = readFileSync(join(root, '.github/workflows/claude.yml'), 'utf8');
+  assert.match(workflow, /pull_request:\n    types: \[opened, synchronize, reopened\]/);
+});
+
 test('CI fails on high or critical development advisories', () => {
   const ci = readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8');
   assert.match(ci, /name: Security audit\s+run: pnpm audit --audit-level=high\s*\n/);
