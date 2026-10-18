@@ -14,6 +14,22 @@ for (const job of ['claude-respond', 'claude-review']) {
     assert.doesNotMatch(block, /contents: write|id-token: write/);
   });
 }
+
+test('agent reviews explicitly allow only review read and comment tools', () => {
+  const review = workflow.split('  claude-review:')[1] ?? '';
+  assert.match(review, /claude_args: \|/);
+  assert.match(review, /--allowedTools "mcp__github_inline_comment__create_inline_comment,Bash\(gh pr comment:\*\),Bash\(gh pr diff:\*\),Bash\(gh pr view:\*\)"/);
+  assert.doesNotMatch(review, /--dangerously-skip-permissions|--permission-mode bypassPermissions/);
+});
+
+test('agent review receives exact PR context and posts a verifiable summary', () => {
+  const review = workflow.split('  claude-review:')[1] ?? '';
+  for (const expression of ['github.repository', 'github.event.pull_request.number', 'github.event.pull_request.head.sha']) {
+    assert.ok(review.includes('${{ ' + expression + ' }}'), `missing ${expression}`);
+  }
+  assert.match(review, /Always post a summary using `gh pr comment/);
+});
+
 test('automatic reviews run for the current PR head', () => {
   assert.match(workflow, /pull_request:\n    types: \[opened, synchronize, reopened\]/);
 });
