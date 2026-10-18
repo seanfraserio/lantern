@@ -414,7 +414,9 @@ export async function createServer(config?: Partial<IngestServerConfig>) {
   const host = config?.host ?? process.env.HOST ?? yamlConfig.server.host;
   const databaseUrl = config?.databaseUrl ?? process.env.DATABASE_URL ?? yamlConfig.storage.url ?? "";
   const multiTenant = config?.multiTenant ?? process.env.MULTI_TENANT === "true";
-  const apiKey = config?.apiKey ?? process.env.LANTERN_API_KEY ?? yamlConfig.auth?.api_keys?.find((k) => k.length > 0);
+  // Compose can export an empty key; treat that environment value as unset.
+  // Explicit configuration still takes precedence, including an empty string.
+  const apiKey = config?.apiKey ?? (process.env.LANTERN_API_KEY || yamlConfig.auth?.api_keys?.find((k) => k.length > 0));
 
   // Fail closed before allocating stores, prompt DBs, or a listening socket.
   assertSingleTenantBindAllowed(host, apiKey, {
