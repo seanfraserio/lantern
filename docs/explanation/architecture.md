@@ -61,6 +61,15 @@ in a buffer and exports them either when the buffer reaches `batchSize` (default
 This batching strategy reduces HTTP overhead. A single POST request can carry up
 to 100 traces.
 
+The in-memory buffer is bounded (default 10,000 traces). When the cap is
+exceeded, the SDK drops the **oldest** traces first and keeps the newest. Drops
+are not silent: `LanternTracer` increments `droppedTraceCount`, emits a
+`console.warn`, and calls the optional `onTraceDrop` callback with
+`{ dropped, bufferSize, maxBufferSize, reason }`. `reason` is `buffer_full`
+when `endTrace` overflows the cap, or `flush_failed` when a failed export is
+restored and still exceeds the cap. Dropped traces are not durable and are not
+retried.
+
 ### 3. Ingest
 
 The `LanternExporter` sends traces to `POST /v1/traces` on the ingest server.

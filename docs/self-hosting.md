@@ -38,6 +38,9 @@ pnpm start
 | `STORE_TYPE` | `sqlite` | Storage backend (sqlite/postgres) |
 | `DB_PATH` | `lantern.db` | SQLite database path |
 | `DATABASE_URL` | — | PostgreSQL connection string |
+| `HOST` | `127.0.0.1` | Bind address. Non-localhost binds require `LANTERN_API_KEY` |
+| `LANTERN_API_KEY` | — | Bearer token required for non-localhost single-tenant binds |
+| `LANTERN_ALLOW_INSECURE` | `false` | Set to `true` only to allow an unauthenticated non-localhost bind in isolated development |
 
 ## Production recommendations
 

@@ -71,3 +71,15 @@ wrap_openai_client(client, tracer)
 
 # All chat.completions.create() calls are now traced automatically
 ```
+
+## Tests
+
+From `sdk-python/`:
+
+```bash
+pip install -e ".[test]"
+pytest tests/ -v --tb=short
+```
+
+Install the editable package before pytest. The tests import `lantern_ai`, which
+resolves from the installed `src/` layout rather than an implicit path.

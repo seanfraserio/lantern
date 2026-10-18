@@ -9,6 +9,8 @@
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
+    "test:dependency-contracts": "node --test scripts/toolchain-contract.test.mjs packages/integrations/mastra/__tests__/dependency-contract.node.mjs",
+    "pack:check": "node --test scripts/artifact-contract.test.mjs && node scripts/pack-artifacts.mjs",
     "lint": "eslint packages/*/src --ext .ts,.tsx",
     "typecheck": "pnpm -r run typecheck",
     "dev": "pnpm -r --parallel run dev",
@@ -17,14 +19,17 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "@vitest/coverage-v8": "^1.4.0",
-    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^8.71.2",
+    "@typescript-eslint/parser": "^8.71.2",
+    "@vitest/coverage-v8": "^4.1.11",
+    "eslint": "^10.13.0",
     "prettier": "^3.2.0",
-    "tsup": "^8.0.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.4.0",
-    "vitest": "^1.4.0"
+    "vitest": "^4.1.11",
+    "vite": "^7.3.7",
+    "@eslint/js": "^10.0.1",
+    "globals": "^16.5.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -32,13 +37,35 @@
       "esbuild"
     ],
     "overrides": {
-      "flatted": ">=3.4.2",
-      "picomatch": ">=4.0.4",
-      "undici": ">=6.24.0",
-      "brace-expansion": "~2.0.1",
-      "cookie": ">=0.7.0",
-      "path-to-regexp": ">=8.4.0",
-      "dotenv-expand": "~11.0.7"
+      "flatted": ">=3.4.2 <4",
+      "picomatch@2": ">=2.3.2 <3",
+      "picomatch@4": ">=4.0.4 <5",
+      "google-gax>protobufjs": ">=7.6.6 <8",
+      "@grpc/proto-loader>protobufjs": ">=7.6.6 <8",
+      "proto3-json-serializer>protobufjs": ">=7.6.6 <8",
+      "google-gax>@grpc/grpc-js": ">=1.14.6 <2",
+      "fastify>find-my-way": ">=9.10.0 <10",
+      "ajv>fast-uri": ">=3.1.8 <4",
+      "fast-xml-parser>fast-xml-builder": ">=1.1.7 <2",
+      "cohere-ai>form-data": "4.0.6",
+      "serve>compression": "1.8.2",
+      "express>proxy-addr": "2.0.8",
+      "mastra>shell-quote": "1.11.0",
+      "@mastra/core>ws": "8.21.0",
+      "@openai/agents-realtime>ws": "8.21.0",
+      "@mistralai/mistralai>ws": "8.21.0",
+      "@ai-sdk/provider-utils>nanoid": "3.3.18",
+      "express-rate-limit>ip-address": "10.7.1",
+      "minimatch@9>brace-expansion": "2.1.7",
+      "@babel/helper-compilation-targets>browserslist": "4.28.7",
+      "gray-matter>js-yaml": "3.15.2",
+      "pino-pretty>fast-copy": "4.1.0",
+      "express>qs": "6.16.0",
+      "body-parser>qs": "6.16.0",
+      "express@5>body-parser": "2.3.0",
+      "postcss@8": ">=8.5.23 <9",
+      "nanoid@3": ">=3.3.20 <4",
+      "source-map-js@1": ">=1.2.2 <2"
     }
   }
 }

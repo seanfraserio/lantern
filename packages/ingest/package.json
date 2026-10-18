@@ -7,10 +7,14 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts src/cli.ts --format esm,cjs --dts",
     "test": "vitest run",
@@ -19,23 +23,23 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
-    "@freelancer/shared-utils": "file:../../shared-packages/shared-utils",
     "@fastify/compress": "^8.0.0",
     "@google-cloud/pubsub": "^5.3.0",
     "@google-cloud/tasks": "^6.2.1",
     "@openlantern-ai/sdk": "workspace:*",
     "better-sqlite3": "^11.0.0",
-    "fastify": "^5.8.4",
-    "js-yaml": "^4.1.0",
+    "fastify": "^5.12.7",
+    "js-yaml": "^4.3.2",
     "pg": "^8.20.0"
   },
   "devDependencies": {
+    "@freelancer/shared-utils": "file:../../shared-packages/shared-utils",
     "@types/better-sqlite3": "^7.6.0",
     "@types/js-yaml": "^4.0.9",
     "@types/pg": "^8.18.0",
-    "tsup": "^8.0.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.4.0",
-    "vitest": "^1.4.0"
+    "vitest": "^4.1.11"
   },
   "private": true
 }

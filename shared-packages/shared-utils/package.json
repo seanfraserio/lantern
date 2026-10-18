@@ -7,6 +7,6 @@
     "./security-headers": "./src/security-headers.ts"
   },
   "peerDependencies": {
-    "fastify": "^5.0.0"
+    "fastify": "^5.12.5"
   }
 }

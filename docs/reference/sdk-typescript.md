@@ -36,6 +36,8 @@ const tracer = new LanternTracer({
 | `environment` | string | `"dev"` | Deployment environment |
 | `exporter` | `ITraceExporter` | -- | **Required.** The exporter to send traces to |
 | `batchSize` | number | `50` | Number of traces to buffer before auto-flushing |
+| `maxBufferSize` | number | `10000` | Hard cap. Oldest traces are dropped when exceeded |
+| `onTraceDrop` | `(event: TraceDropEvent) => void` | -- | Structured callback when oldest traces are dropped |
 | `flushIntervalMs` | number | `5000` | Milliseconds between periodic background flushes |
 
 The constructor starts a periodic flush timer (unreffed so it does not keep the
@@ -120,6 +122,12 @@ tracer.endTrace(trace.id, "success");
 ```
 
 Default status is `"success"`.
+
+If the export buffer exceeds `maxBufferSize` (default 10,000), the oldest
+traces are dropped and `onTraceDrop` is called when configured. The same
+oldest-first policy applies when a failed flush is restored past the cap.
+Dropped traces are not retried. `tracer.droppedTraceCount` is the cumulative
+number dropped.
 
 #### `getTrace(traceId: string): Trace | undefined`
 
