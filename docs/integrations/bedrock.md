@@ -16,6 +16,11 @@ npm install @openlantern-ai/sdk
 
 ## Setup
 
+The adapter accepts an existing compatible client. It does not import or
+auto-install the AWS SDK, and its declarations do not require AWS types. The
+AWS package above belongs to the application example, not the adapter's runtime
+dependencies. The only required peer is the Lantern SDK.
+
 ```typescript
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { LanternTracer, LanternExporter } from "@openlantern-ai/sdk";

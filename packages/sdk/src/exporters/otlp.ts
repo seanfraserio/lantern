@@ -1,8 +1,6 @@
-import { createRequire } from "node:module";
+import { version as SDK_VERSION } from "../../package.json";
 import type { ITraceExporter, Trace, Span, SpanType } from "../types.js";
 
-const require = createRequire(import.meta.url);
-const { version: SDK_VERSION } = require("../../package.json") as { version: string };
 
 export interface OtlpExporterConfig {
   endpoint: string;

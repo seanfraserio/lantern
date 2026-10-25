@@ -155,26 +155,31 @@ The `public.usage` table stores monthly aggregates per tenant:
 | `input_tokens` | Total input tokens across all traces |
 | `output_tokens` | Total output tokens across all traces |
 
-This table is updated as traces are ingested.
+This table is **not** incremented by the open-source ingest server. Ingest only
+reads `public.usage` when deciding whether to accept a POST. A separate billing
+or aggregation worker (not in this repository) must keep `trace_count` current.
+Until that worker writes a row, the gate sees zero usage and allows ingestion.
 
 ### The usage cache
 
 To avoid querying the database on every ingestion request, the ingest server
-maintains an in-memory cache of each tenant's usage:
+maintains an in-memory cache of each tenant's last-read usage:
 
 ```
 { tenantId -> { count, plan, checkedAt } }
 ```
 
-The cache is refreshed every 60 seconds. This means:
+The cache is refreshed every 60 seconds. Accepted batches are **not** reserved
+against the cached count, and concurrent requests inside the TTL all see the
+same snapshot. This is an approximate gate, not an atomic quota:
 
-- A tenant at 9,999 traces could ingest a burst past 10,000 before the cache
-  refreshes.
-- The over-ingestion window is at most 60 seconds and bounded by the batch
-  size (100 traces per request).
-- This is an intentional trade-off: strict per-request database checks would
-  add latency to every ingestion call, degrading the SDK experience for all
-  tenants.
+- A tenant whose `public.usage` row is still under the limit can accept any
+  number of batches until the cache expires or an external writer advances the
+  count past the limit.
+- The 60-second window is not a hard overage bound, and batch size does not
+  reserve remaining capacity.
+- This is an intentional trade-off of the current ingest package: it does not
+  implement a billing ledger or per-request reservation.
 
 ### Monthly reset
 

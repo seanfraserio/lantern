@@ -16,6 +16,11 @@ npm install @openlantern-ai/sdk
 
 ## Setup
 
+The adapter accepts an existing client with `chat` and `generate` methods. It does
+not import or auto-install Cohere's SDK, and its declarations do not require
+Cohere types. Install that SDK for your application when needed. The only
+required peer is the Lantern SDK.
+
 ```typescript
 import { CohereClient } from "cohere-ai";
 import { LanternTracer, LanternExporter } from "@openlantern-ai/sdk";

@@ -200,6 +200,66 @@ describe("LanternTracer", () => {
       await failTracer.shutdown().catch(() => {});
     });
 
+    it("drops oldest traces first and reports structured drop events", async () => {
+      const drops: Array<{ dropped: number; bufferSize: number; maxBufferSize: number; reason: string }> = [];
+      const bounded = new LanternTracer({
+        exporter,
+        batchSize: 100_000,
+        flushIntervalMs: 100_000,
+        maxBufferSize: 2,
+        onTraceDrop: (event) => drops.push(event),
+      });
+
+      const ids = ["a", "b", "c"].map((agentName) => {
+        const trace = bounded.startTrace({ agentName });
+        bounded.endTrace(trace.id, "success");
+        return trace.id;
+      });
+
+      expect(drops).toEqual([
+        { dropped: 1, bufferSize: 2, maxBufferSize: 2, reason: "buffer_full" },
+      ]);
+      expect(bounded.droppedTraceCount).toBe(1);
+
+      await bounded.flush();
+      const exportedIds = exporter.exported[0].map((trace) => trace.id);
+      expect(exportedIds).toEqual([ids[1], ids[2]]);
+      expect(exportedIds).not.toContain(ids[0]);
+      await bounded.shutdown();
+    });
+
+    it("isolates an onTraceDrop observer that throws and still drops oldest traces", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const bounded = new LanternTracer({
+        exporter,
+        batchSize: 100_000,
+        flushIntervalMs: 100_000,
+        maxBufferSize: 1,
+        onTraceDrop: () => {
+          throw new Error("observer failed");
+        },
+      });
+
+      const first = bounded.startTrace({ agentName: "first" });
+      const second = bounded.startTrace({ agentName: "second" });
+      expect(() => bounded.endTrace(first.id, "success")).not.toThrow();
+      expect(() => bounded.endTrace(second.id, "success")).not.toThrow();
+      expect(bounded.droppedTraceCount).toBe(1);
+      await bounded.flush();
+      expect(exporter.exported[0].map((trace) => trace.id)).toEqual([second.id]);
+      expect(warn).toHaveBeenCalled();
+      warn.mockRestore();
+      await bounded.shutdown();
+    });
+
+    it("rejects a non-positive maxBufferSize", () => {
+      expect(() => new LanternTracer({
+        exporter,
+        flushIntervalMs: 100_000,
+        maxBufferSize: 0,
+      })).toThrow(/maxBufferSize/);
+    });
+
     it("auto-flushes when batch size is reached", async () => {
       const smallBatchTracer = new LanternTracer({
         exporter,

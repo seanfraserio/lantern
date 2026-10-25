@@ -65,7 +65,9 @@ Wraps Vercel AI SDK functions to trace text generation and streaming. See [Verce
 
 ### Integration Packages
 
-These collectors live in separate packages with peer dependencies on their respective SDKs.
+These collectors live in separate packages. Install the Lantern SDK peer and any
+provider SDK your application uses. The Mastra and OpenAI Agents adapters accept
+normalized callbacks; they do not require or automatically install framework tooling.
 
 #### wrapMistralClient(client, tracer, opts?)
 

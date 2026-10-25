@@ -18,14 +18,24 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Claude integration contracts
+        run: node --test scripts/claude-workflow.test.mjs
       - name: Security audit
-        run: pnpm audit --audit-level=high || true  # non-blocking; weekly audit workflow creates issues
+        run: pnpm audit --audit-level=high
       - run: pnpm build
+      - name: Artifact contract unit tests
+        run: node --test scripts/artifact-contract.test.mjs
+      - name: Framework dependency contracts
+        run: pnpm test:dependency-contracts
+      - name: Verify actual tarballs and external consumers
+        run: node scripts/pack-artifacts.mjs
       - run: pnpm typecheck
       - name: Lint
         run: pnpm lint
       - name: Test with coverage
         run: pnpm test -- --coverage
+        # PostgresTraceStore tests skip unless POSTGRES_URL is set.
+        # They run in the postgres-tests job below; this job does not start a database.
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
@@ -40,7 +50,43 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: |
-          cd sdk-python
+      - name: Test Python SDK
+        working-directory: sdk-python
+        run: |
           pip install -e ".[test]"
           pytest tests/ -v --tb=short
+
+  # Opt-in PostgreSQL coverage for packages/ingest/src/store/postgres.test.ts.
+  # The default job above does not provide POSTGRES_URL, so those 7 tests skip.
+  postgres-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lantern
+          POSTGRES_PASSWORD: lantern
+          POSTGRES_DB: lantern
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lantern -d lantern"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Postgres store tests
+        working-directory: packages/ingest
+        env:
+          POSTGRES_URL: postgresql://lantern:lantern@localhost:5432/lantern
+        run: pnpm exec vitest run src/store/postgres.test.ts

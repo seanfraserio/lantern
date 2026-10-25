@@ -6,12 +6,10 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { createRequire } from "node:module";
+import { version as PKG_VERSION } from "../package.json";
 import type { Trace, Span } from "@openlantern-ai/sdk";
 import type { ProviderName } from "./types.js";
 
-const require = createRequire(import.meta.url);
-const { version: PKG_VERSION } = require("../package.json") as { version: string };
 
 export interface CapturedData {
   provider: ProviderName;
