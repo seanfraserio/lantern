@@ -7,7 +7,7 @@ name = "lantern-ai"
 version = "0.1.3"
 description = "Python SDK for Lantern agent observability"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 dependencies = ["httpx>=0.24.0"]
 
@@ -25,3 +25,11 @@ test = ["pytest>=7.0", "pytest-asyncio>=0.21", "httpx"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lantern_ai"]
+
+[tool.uv]
+# Transitive floors for GHSA-6q48-6c7w-9gw2 and GHSA-82r6-8w77-94w6.
+# anyio>=4.14.2 requires Python>=3.10, which matches requires-python above.
+constraint-dependencies = [
+  "certifi>=2026.10.19",
+  "anyio>=4.14.2",
+]
