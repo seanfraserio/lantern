@@ -44,9 +44,12 @@ jobs:
   # ============================================
   claude-review:
     name: Claude Review
+    # Skip Dependabot PRs: claude-code-action rejects bot actors, and
+    # Dependabot-triggered runs get no Actions secrets (ANTHROPIC_API_KEY is empty).
     if: |
       github.event_name == 'pull_request' &&
-      github.event.pull_request.draft == false
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
